@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>さがした駅｜チェーン店で駅えらび（TOKYO版）</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+  <div class="hwrap">
+    <h1><a href="index.html">チェーン店で駅えらび（TOKYO版）</a></h1>
+    <p>好きなチェーンが歩いてすぐの駅</p>
+  </div>
+</header>
+
+<main>
+  <div class="step"><span class="num">2</span><h2>見つかった駅</h2></div>
+
+  <div class="cond">
+    <h3>選んだお店（タップで外せます）</h3>
+    <div class="chips" id="chips"></div>
+    <div class="condbtns">
+      <a class="go sub" href="index.html">お店を選びなおす</a>
+      <button class="go clear" id="clearChains">お店の選択をぜんぶ消す</button>
+    </div>
+  </div>
+
+  <div class="cond">
+    <h3><label for="lineSel">路線でしぼる</label></h3>
+    <select id="lineSel">
+      <option value="">すべての路線（しぼりこみなし）</option>
+    </select>
+    <div class="chips" id="lchips"></div>
+    <div class="condbtns" id="lineBtns" hidden>
+      <button class="go clear" id="clearLines">路線のしぼりこみを消す</button>
+    </div>
+  </div>
+
+  <div id="out"></div>
+</main>
+
+<footer>
+  距離は駅の代表地点からの直線距離です。徒歩の分数は分速80mで計算しています。
+</footer>
+
+<script>
+const ICON = "https://www.locationsmart.org";
+let chains = [], stations = [], allLines = [], sel = new Set(), lineSel = new Set();
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]));
+const linesOf = st => st.lines ? st.lines.split(" / ") : [];
+
+try { sel = new Set(JSON.parse(localStorage.getItem("ekierabi.sel") || "[]")); } catch (e) {}
+try { lineSel = new Set(JSON.parse(localStorage.getItem("ekierabi.lines") || "[]")); } catch (e) {}
+
+Promise.all([
+  fetch("data/chains.json").then(r => r.json()),
+  fetch("data/stations.json").then(r => r.json()),
+  fetch("data/lines.json").then(r => r.json()),
+]).then(([c, s, l]) => { chains = c; stations = s; allLines = l; draw(); });
+
+function save() {
+  localStorage.setItem("ekierabi.sel", JSON.stringify([...sel]));
+  localStorage.setItem("ekierabi.lines", JSON.stringify([...lineSel]));
+}
+
+// 選んだお店がぜんぶ800m以内にある駅（路線フィルタ適用前）
+// stations.json は家賃の安い順に並んでおり、o がその順位。金額そのものは持っていない。
+function matchStations(want) {
+  const hits = [];
+  for (const st of stations) {
+    if (st.o == null) continue;         // 順位が付いていない駅（相場データなし）は除外
+    const dist = [];
+    let ok = true;
+    for (const w of want) {
+      const k = st.chains.indexOf(w);
+      if (k < 0) { ok = false; break; }
+      dist.push([w, st.d[k]]);
+    }
+    if (ok) hits.push({ st, dist });
+  }
+  return hits;
+}
+
+function draw() {
+  drawChips();
+  const want = [...sel];
+
+  if (!want.length) {
+    drawLineFilter([]);
+    $("out").innerHTML =
+      '<div class="noresult"><h3>お店が選ばれていません</h3>' +
+      '<p>まずは「このチェーンがなければ生きていけない！」というお店をえらんでください。</p>' +
+      '<a class="go" href="index.html">お店をえらぶ</a></div>';
+    return;
+  }
+
+  const base = matchStations(want);
+  drawLineFilter(base);
+
+  if (!base.length) { drawNone(want); return; }
+
+  const hits = lineSel.size
+    ? base.filter(h => linesOf(h.st).some(n => lineSel.has(n)))
+    : base;
+  hits.sort((a, b) => a.st.o - b.st.o);   // o = 家賃の安い順
+
+  if (!hits.length) {
+    $("out").innerHTML =
+      '<div class="noresult"><h3>その路線には見つかりませんでした</h3>' +
+      '<p>お店の条件に合う駅は ' + base.length + ' 駅ありますが、えらんだ路線にはありません。' +
+      '路線のしぼりこみを消すか、別の路線をえらんでください。</p>' +
+      '<button class="go" onclick="clearLines()">路線のしぼりこみを消す</button></div>';
+    return;
+  }
+
+  const head =
+    '<p class="hit">条件に合う駅が <b>' + hits.length + '</b> 駅 見つかりました</p>' +
+    '<p class="hitsub">選んだ ' + want.length + ' 店すべてが歩いて5分以内（800m）。<b>家賃相場のやすい順</b>にならべています。' +
+    (lineSel.size ? '（全' + base.length + '駅のうち、えらんだ路線ぶん）' : '') + '</p>';
+
+  $("out").innerHTML = head + '<div class="stations">' + hits.map(row).join("") + '</div>';
+}
+
+// 路線プルダウン：お店の条件に合う駅がある路線だけを、駅数つきで出す
+function drawLineFilter(base) {
+  const cnt = new Map();
+  base.forEach(h => linesOf(h.st).forEach(n => cnt.set(n, (cnt.get(n) || 0) + 1)));
+
+  const s = $("lineSel");
+  s.replaceChildren();
+  s.appendChild(new Option("すべての路線（しぼりこみなし）", ""));
+  allLines.forEach(n => {
+    if (!cnt.has(n) || lineSel.has(n)) return;
+    s.appendChild(new Option(n + "（" + cnt.get(n) + "駅）", n));
+  });
+  s.value = "";
+  s.disabled = s.options.length <= 1;
+
+  const box = $("lchips");
+  if (!lineSel.size) {
+    box.innerHTML = '<span class="none">えらんでいません（全路線が対象）</span>';
+  } else {
+    box.replaceChildren(...[...lineSel].map(n => {
+      const el = document.createElement("span");
+      el.className = "chip";
+      el.title = n + " を外す";
+      el.innerHTML = esc(n) + '<span class="x">✕</span>';
+      el.onclick = () => { lineSel.delete(n); save(); draw(); };
+      return el;
+    }));
+  }
+  $("lineBtns").hidden = lineSel.size === 0;
+}
+
+function row(h, i) {
+  const st = h.st;
+  const walks = h.dist
+    .sort((a, b) => a[1] - b[1])
+    .map(([ci, m]) => {
+      const c = chains[ci];
+      const min = Math.max(1, Math.ceil(m / 80));
+      return '<span class="w"><img class="pin" src="' + ICON + c.icon + '" alt="" loading="lazy" ' +
+             'onerror="this.style.visibility=\'hidden\'">' + esc(c.name) +
+             '<span class="m">徒歩' + min + '分</span></span>';
+    }).join("");
+
+  const locasma = "https://www.locationsmart.org/?tag=_food&lat=" + st.lat.toFixed(5) +
+                  "&lon=" + st.lon.toFixed(5) + "&z=16";
+  const gmap = "https://www.google.com/maps/search/?api=1&query=" + st.lat + "," + st.lon;
+
+  return '<div class="st' + (i < 3 ? " top3" : "") + '">' +
+    '<div class="top"><span class="rank">' + (i + 1) + '</span>' +
+    '<span class="nm">' + esc(st.name) + '</span></div>' +
+    '<div class="lines">' + esc(st.lines) + '</div>' +
+    '<div class="walk">' + walks + '</div>' +
+    '<div class="links">' +
+      '<a href="' + locasma + '" target="_blank" rel="noopener">📍 まわりのお店を地図で見る</a>' +
+      '<a href="' + gmap + '" target="_blank" rel="noopener">🗺 Googleマップ</a>' +
+      '<a href="' + esc(st.url) + '" target="_blank" rel="noopener">🏠 この駅の家賃をくわしく</a>' +
+    '</div></div>';
+}
+
+function drawNone(want) {
+  // どのお店が足かせになっているか分かるように、1店だけ外した場合の件数を出す
+  const counts = want.map(w => {
+    const rest = want.filter(x => x !== w);
+    let n = 0;
+    for (const st of stations) {
+      if (st.o == null) continue;
+      if (rest.every(x => st.chains.includes(x))) n++;
+    }
+    return { w, n };
+  }).sort((a, b) => b.n - a.n);
+
+  $("out").innerHTML =
+    '<div class="noresult"><h3>ぜんぶそろう駅は見つかりませんでした</h3>' +
+    '<p>お店をひとつ外すと、これだけ見つかります。外したいお店をタップしてください。</p>' +
+    '<ul>' + counts.map(x => {
+      const c = chains[x.w];
+      return '<li data-i="' + x.w + '" style="cursor:pointer">' +
+        '<img class="pin" src="' + ICON + c.icon + '" alt="">' + esc(c.name) +
+        '<span class="n">外すと ' + x.n + '駅</span></li>';
+    }).join("") + '</ul>' +
+    '<a class="go sub" href="index.html">お店を選びなおす</a></div>';
+
+  document.querySelectorAll(".noresult li").forEach(li => {
+    li.onclick = () => { sel.delete(+li.dataset.i); save(); draw(); window.scrollTo({top:0,behavior:"smooth"}); };
+  });
+}
+
+function drawChips() {
+  const box = $("chips");
+  $("clearChains").hidden = sel.size === 0;
+  if (!sel.size) { box.innerHTML = '<span class="none">お店が選ばれていません</span>'; return; }
+  box.replaceChildren(...[...sel].map(i => {
+    const c = chains[i];
+    const s = document.createElement("span");
+    s.className = "chip";
+    s.title = c.name + " を外す";
+    s.innerHTML = '<img class="pin" src="' + ICON + c.icon + '" alt="">' + esc(c.name) + '<span class="x">✕</span>';
+    s.onclick = () => { sel.delete(i); save(); draw(); };
+    return s;
+  }));
+}
+
+function clearLines() { lineSel.clear(); save(); draw(); }
+
+$("lineSel").onchange = e => {
+  if (!e.target.value) return;
+  lineSel.add(e.target.value);
+  save(); draw();
+};
+$("clearLines").onclick = clearLines;
+$("clearChains").onclick = () => {
+  sel.clear(); save(); draw(); window.scrollTo({top: 0, behavior: "smooth"});
+};
+</script>
+</body>
+</html>

@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>チェーン店で駅えらび（TOKYO版）</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+  <div class="hwrap">
+    <h1>チェーン店で駅えらび（TOKYO版）</h1>
+    <p>好きなチェーンがそろってる駅に住みたいよね</p>
+  </div>
+</header>
+
+<main>
+  <div class="step"><span class="num">1</span><h2>好きなお店を選ぶ</h2></div>
+  <p class="lead">「このチェーンがなければ生きていけない！」というお店をえらんでください。<br>
+     いくつでも選べます。えらんだお店が<b>ぜんぶ歩いて5分以内（800m）</b>にそろう駅をさがします。</p>
+
+  <div class="searchbox">
+    <span class="ico">🔍</span>
+    <input id="q" type="search" placeholder="お店の名前でさがす（例：まつや）" autocomplete="off" aria-label="お店の名前でさがす">
+    <button class="clr" id="clr" aria-label="消す">✕</button>
+  </div>
+
+  <div class="cats" id="cats" role="group" aria-label="ジャンル"></div>
+
+  <p class="count" id="count"></p>
+  <div class="grid" id="grid"></div>
+  <button class="more" id="more" hidden>もっと見る</button>
+  <p class="empty" id="empty" hidden>見つかりませんでした。別のことばでさがしてみてください。</p>
+</main>
+
+<div class="tray">
+  <div class="twrap">
+    <div class="tinfo">
+      <div class="n"><b id="selN">0</b> 店を選択中
+        <button class="clearlink" id="clearAll" hidden>ぜんぶ消す</button>
+      </div>
+      <div class="chips" id="chips"><span class="none">まだ選んでいません</span></div>
+    </div>
+    <button class="go" id="go" disabled>駅をさがす</button>
+  </div>
+</div>
+
+<footer>
+  東京都内の駅から半径800m以内に店舗があるチェーンのみを掲載しています。
+</footer>
+
+<script>
+const ICON = "https://www.locationsmart.org";
+const PAGE = 60;
+let chains = [], cats = [], sel = new Set(), curCat = "*", shown = PAGE;
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]));
+
+fetch("data/chains.json").then(r => r.json()).then(d => {
+  chains = d;
+  const m = new Map();
+  chains.forEach(c => c.cats.forEach(k => m.set(k, (m.get(k) || 0) + 1)));
+  cats = [...m.entries()].sort((a, b) => b[1] - a[1]).map(e => e[0]);
+  restore();
+  renderCats();
+  render();
+});
+
+function renderCats() {
+  const mk = (label, key) => {
+    const b = document.createElement("button");
+    b.textContent = label;
+    b.setAttribute("aria-pressed", key === curCat);
+    b.onclick = () => { curCat = key; shown = PAGE; renderCats(); render(); window.scrollTo({top: 0, behavior: "smooth"}); };
+    return b;
+  };
+  $("cats").replaceChildren(mk("人気順すべて", "*"), ...cats.map(k => mk(k, k)));
+}
+
+function filtered() {
+  const q = $("q").value.trim().toLowerCase();
+  return chains.filter(c => {
+    if (curCat !== "*" && !c.cats.includes(curCat)) return false;
+    if (!q) return true;
+    return (c.name + " " + c.o_name).toLowerCase().includes(q);
+  });
+}
+
+function render() {
+  const list = filtered();
+  const grid = $("grid");
+  grid.replaceChildren();
+
+  $("empty").hidden = list.length > 0;
+  $("count").textContent = list.length
+    ? (curCat === "*" ? "駅の近くでよく見かける順" : curCat + "：" + list.length + "店") + "（全" + chains.length + "店）"
+    : "";
+
+  list.slice(0, shown).forEach(c => grid.appendChild(card(c)));
+  $("more").hidden = list.length <= shown;
+  $("more").textContent = "もっと見る（残り " + (list.length - shown) + " 店）";
+}
+
+function card(c) {
+  const b = document.createElement("button");
+  b.className = "chain";
+  b.setAttribute("aria-pressed", sel.has(c.i));
+  b.innerHTML =
+    '<img class="pin" src="' + ICON + c.icon + '" alt="" loading="lazy" onerror="this.style.visibility=\'hidden\'">' +
+    '<span class="nm">' + esc(c.name) + '<span class="sub">' + c.stations + 'の駅の近く</span></span>';
+  b.onclick = () => { toggle(c.i); b.setAttribute("aria-pressed", sel.has(c.i)); };
+  return b;
+}
+
+function toggle(i) { sel.has(i) ? sel.delete(i) : sel.add(i); save(); tray(); }
+
+function tray() {
+  $("selN").textContent = sel.size;
+  $("go").disabled = sel.size === 0;
+  $("clearAll").hidden = sel.size === 0;
+  const box = $("chips");
+  if (!sel.size) { box.innerHTML = '<span class="none">まだ選んでいません</span>'; return; }
+  box.replaceChildren(...[...sel].map(i => {
+    const c = chains[i];
+    const s = document.createElement("span");
+    s.className = "chip";
+    s.title = c.name + " を外す";
+    s.innerHTML = '<img class="pin" src="' + ICON + c.icon + '" alt="">' + esc(c.name) + '<span class="x">✕</span>';
+    s.onclick = () => { sel.delete(i); save(); tray(); render(); };
+    return s;
+  }));
+}
+
+function save() { localStorage.setItem("ekierabi.sel", JSON.stringify([...sel])); }
+function restore() {
+  try { sel = new Set(JSON.parse(localStorage.getItem("ekierabi.sel") || "[]")); } catch (e) { sel = new Set(); }
+  tray();
+}
+
+$("q").addEventListener("input", () => {
+  shown = PAGE;
+  $("clr").classList.toggle("on", $("q").value !== "");
+  render();
+});
+$("clr").onclick = () => { $("q").value = ""; $("clr").classList.remove("on"); shown = PAGE; render(); $("q").focus(); };
+$("more").onclick = () => { shown += PAGE; render(); };
+$("go").onclick = () => { location.href = "result.html"; };
+$("clearAll").onclick = () => { sel.clear(); save(); tray(); render(); };
+</script>
+</body>
+</html>
