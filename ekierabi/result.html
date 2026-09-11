@@ -156,10 +156,38 @@ function drawLineFilter(base) {
   $("lineBtns").hidden = lineSel.size === 0;
 }
 
+// ---- X（旧Twitter）へのポスト ----
+const SITE = "https://b-s-o-z.github.io/website/ekierabi/";
+const X_LOGO = '<svg class="xi" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" ' +
+  'd="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835' +
+  'L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>';
+
+// X の重み付き文字数。日本語などは2文字ぶん、URL は長さにかかわらず23文字ぶん。
+function tweetLen(s) {
+  let n = 0;
+  for (const ch of s) {
+    const c = ch.codePointAt(0);
+    n += (c <= 0x10FF || (c >= 0x2000 && c <= 0x200D) ||
+          (c >= 0x2010 && c <= 0x201F) || (c >= 0x2032 && c <= 0x2037)) ? 1 : 2;
+  }
+  return n - (SITE.length - 23);
+}
+
+// 280 をこえるときは、遠いお店から落として「など」でまとめる
+function tweetText(name, names) {
+  const build = (list, more) => [
+    "わたしは「" + name + "」に住みたい！なぜなら" + list.join("、") + (more ? "など" : "") + "があるから",
+    "by チェーン店で駅えらび（" + SITE + "）",
+  ].join("\n");
+  let n = names.length, text = build(names, false);
+  while (n > 1 && tweetLen(text) > 280) text = build(names.slice(0, --n), true);
+  return text;
+}
+
 function row(h, i) {
   const st = h.st;
-  const walks = h.dist
-    .sort((a, b) => a[1] - b[1])
+  const near = h.dist.slice().sort((a, b) => a[1] - b[1]);
+  const walks = near
     .map(([ci, m]) => {
       const c = chains[ci];
       const min = Math.max(1, Math.ceil(m / 80));
@@ -167,6 +195,9 @@ function row(h, i) {
              'onerror="this.style.visibility=\'hidden\'">' + esc(c.name) +
              '<span class="m">徒歩' + min + '分</span></span>';
     }).join("");
+
+  const tweet = "https://x.com/intent/post?text=" +
+                encodeURIComponent(tweetText(st.name, near.map(([ci]) => chains[ci].name)));
 
   const locasma = "https://www.locationsmart.org/?tag=_food&lat=" + st.lat.toFixed(5) +
                   "&lon=" + st.lon.toFixed(5) + "&z=16";
@@ -178,6 +209,8 @@ function row(h, i) {
     '<div class="lines">' + esc(st.lines) + '</div>' +
     '<div class="walk">' + walks + '</div>' +
     '<div class="links">' +
+      '<a class="tw" href="' + esc(tweet) + '" target="_blank" rel="noopener">' +
+        X_LOGO + 'この駅への愛を投稿する</a>' +
       '<a href="' + locasma + '" target="_blank" rel="noopener">📍 まわりのお店を地図で見る</a>' +
       '<a href="' + gmap + '" target="_blank" rel="noopener">🗺 Googleマップ</a>' +
       '<a href="' + esc(st.url) + '" target="_blank" rel="noopener">🏠 この駅の家賃をくわしく</a>' +
