@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Transylvania 冒険地図</title>
+<style>
+:root{--paper:#f6efe0;--card:#fffdf6;--ink:#3a2f25;--mute:#8a7a63;--line:#c9b99a;--accent:#7a4b2a}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:"Yu Mincho","Hiragino Mincho ProN","BIZ UDMincho",serif;line-height:1.7}
+header{text-align:center;padding:34px 16px 8px}
+h1{font-size:1.7rem;letter-spacing:.16em;margin:0}
+.meta{color:var(--mute);font-size:.85rem;font-family:system-ui,sans-serif}
+.stats{display:flex;justify-content:center;gap:26px;flex-wrap:wrap;margin:14px 0 6px;font-family:system-ui,sans-serif}
+.stat b{display:block;font-size:1.5rem;color:var(--accent);line-height:1.1}
+.stat span{font-size:.78rem;color:var(--mute)}
+main{max-width:1180px;margin:0 auto;padding:8px 16px 60px}
+h2{font-size:1.15rem;letter-spacing:.12em;border-bottom:1px solid var(--line);padding-bottom:6px;margin:34px 0 10px}
+h3{font-size:1rem;margin:0 0 2px}
+.sub{margin:0 0 8px;color:var(--mute);font-size:.82rem;font-family:system-ui,sans-serif}
+.legend{display:flex;gap:18px;flex-wrap:wrap;font-size:.8rem;color:var(--mute);font-family:system-ui,sans-serif;margin:6px 0 12px}
+.legend i{display:inline-block;width:26px;border-top:2.5px solid #8a7a63;vertical-align:middle;margin-right:5px}
+.legend i.sp{border-top-style:dashed;border-color:#7a4b2a}
+.legend i.eg{border-top-style:dotted;border-color:#6b4fa0}
+.scroll{overflow-x:auto;background:var(--card);border:1px solid #e3d8c2;border-radius:14px;box-shadow:0 3px 12px rgba(90,70,40,.12);padding:10px}
+svg.map{display:block;margin:0 auto;font-family:system-ui,sans-serif}
+.edge{fill:none;stroke:#8a7a63;stroke-width:2.5}
+.edge.special{stroke:#7a4b2a;stroke-dasharray:7 5}
+.edge.eagle{stroke:#6b4fa0;stroke-width:2;stroke-dasharray:2 5}
+.dl{fill:#fffdf6;stroke:#8a7a63;stroke-width:1.2}
+.dl.sp{stroke:#7a4b2a}.dl.eg{fill:#efe8fa;stroke:#6b4fa0}
+.dlt{font-size:11px;font-weight:700;fill:#5a4a38;text-anchor:middle}
+.room{cursor:pointer}
+.cardbg{fill:#fffdf6;stroke:#d9cdb4;stroke-width:1.2}
+.room:hover .cardbg,.room.active .cardbg{stroke:#7a4b2a;stroke-width:2.5}
+.ja{font-size:12.5px;font-weight:700;fill:#3a2f25;text-anchor:middle}
+.en{font-size:9.5px;fill:#8a7a63;text-anchor:middle}
+.badge{fill:#3a2f25;opacity:.82}.badge.start{fill:#b5442a}.badge.inner{fill:#7a4b2a}
+.badget{font-size:10px;fill:#fff;text-anchor:middle;font-weight:700}
+.complexes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.complex{background:var(--card);border:1px solid #e3d8c2;border-radius:14px;padding:12px 14px;box-shadow:0 3px 12px rgba(90,70,40,.12);min-width:0}
+.complex.wide{grid-column:1 / -1}
+svg.map.fit{width:100%;height:auto}
+@media (max-width:760px){.complexes{grid-template-columns:1fr}}
+#panel{position:fixed;top:0;right:0;width:min(440px,100vw);height:100vh;background:var(--card);border-left:1px solid #e3d8c2;box-shadow:-6px 0 24px rgba(90,70,40,.18);transform:translateX(105%);transition:transform .25s;overflow-y:auto;padding:18px 20px 40px;font-family:system-ui,sans-serif;font-size:.9rem;z-index:10}
+#panel.open{transform:none}
+#panel .close{position:absolute;top:10px;right:14px;border:0;background:none;font-size:1.4rem;cursor:pointer;color:var(--mute)}
+#panel img{width:100%;border-radius:8px;border:1px solid #d9cdb4;margin:8px 0}
+#panel h3{font-family:"Yu Mincho","Hiragino Mincho ProN",serif;font-size:1.2rem}
+#panel .desc{color:var(--mute);font-size:.8rem}
+#panel dl{margin:10px 0}
+#panel dt{font-weight:700;color:var(--accent);margin-top:10px;font-size:.8rem;letter-spacing:.08em}
+#panel dd{margin:2px 0 0 0}
+#panel code{background:#efe6d2;padding:1px 6px;border-radius:5px;font-family:Consolas,monospace;font-size:.82rem}
+#panel .act{margin:3px 0;padding-left:8px;border-left:2px solid #e3d8c2}
+#panel .act .r{color:var(--mute);font-size:.8rem}
+.tag{display:inline-block;background:#efe6d2;border-radius:6px;padding:0 7px;margin:2px 3px 2px 0;font-size:.8rem}
+.tag.enemy{background:#f3d9d2;color:#8a2a1a}
+.tag.link{cursor:pointer}.tag.link:hover{background:#e3d2b4}
+.roomlist{columns:2;column-gap:20px;font-family:system-ui,sans-serif;font-size:.85rem;padding-left:20px}
+.roomlist li{break-inside:avoid;margin:2px 0;cursor:pointer}
+.roomlist li:hover{color:var(--accent);text-decoration:underline}
+.roomlist small{color:var(--mute)}
+</style>
+<style id="pub-back-css">
+.pub-back{position:fixed;left:14px;top:12px;z-index:50;background:rgba(58,47,37,.86);color:#fff;
+  text-decoration:none;font-family:system-ui,sans-serif;font-size:.82rem;padding:6px 12px;
+  border-radius:999px;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+.pub-back:hover{background:#7a4b2a}
+@media print{.pub-back{display:none}}
+</style>
+</head>
+<body>
+<header>
+<h1>&#128506; Transylvania 冒険地図</h1>
+<p class="meta">セッション session_20260909_214225_full ・ モデル gemma4:31b-it-q8_0 ・ プレイ記録 239 ターンから自動生成</p>
+<div class="stats">
+<div class="stat"><b>33</b><span>訪れた場所</span></div>
+<div class="stat"><b>136</b><span>移動回数</span></div>
+<div class="stat"><b>67</b><span>確認した通路</span></div>
+<div class="stat"><b>3</b><span>鷲にさらわれた回数</span></div>
+<div class="stat"><b>湖畔</b><span>最後にいた場所</span></div>
+</div>
+</header>
+<main>
+<h2>屋外</h2>
+<div class="legend"><span><i></i>通路（両端の文字は進む方角）</span><span><i class="sp"></i>特殊な移動（コマンド名）</span><span><i class="eg"></i>巨大な鷲による強制移動</span><span>カードをクリックで詳細</span></div>
+<div class="scroll"><svg class="map" viewBox="0 0 1045 1160" width="1045" height="1160" xmlns="http://www.w3.org/2000/svg">
+<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#8a7a63"/></marker><clipPath id="imgclip"><rect x="0" y="0" width="150" height="103" rx="6"/></clipPath></defs>
+<path class="edge" d="M522.5,915.0 L522.5,959.0"/>
+<path class="edge" d="M444.5,842.0 L395.5,842.0"/>
+<path class="edge" d="M317.5,769.0 L317.5,725.0"/>
+<path class="edge" d="M317.5,579.0 L317.5,535.0"/>
+<path class="edge" d="M317.5,345.0 L317.5,389.0"/>
+<path class="edge" d="M317.5,915.0 L317.5,959.0"/>
+<path class="edge" d="M239.5,842.0 Q112.5,842.0 112.5,535.0"/>
+<path class="edge" d="M190.5,462.0 L239.5,462.0"/>
+<path class="edge" d="M112.5,345.0 L112.5,389.0"/>
+<path class="edge" d="M239.5,272.0 L190.5,272.0"/>
+<path class="edge" d="M317.5,199.0 L317.5,155.0" marker-end="url(#arr)"/>
+<path class="edge" d="M395.5,82.0 L444.5,82.0"/>
+<path class="edge" d="M395.5,154.3 L649.5,389.7" marker-end="url(#arr)"/>
+<path class="edge" d="M600.5,462.0 L649.5,462.0"/>
+<path class="edge" d="M444.5,462.0 L395.5,462.0"/>
+<path class="edge" d="M522.5,345.0 L522.5,389.0"/>
+<path class="edge" d="M727.5,535.0 L727.5,579.0"/>
+<path class="edge" d="M805.5,462.0 L854.5,462.0"/>
+<path class="edge eagle" d="M317.5,348.0 L317.5,766.0" marker-end="url(#arr)"/>
+<path class="edge eagle" d="M398.5,687.6 Q522.5,742.0 646.5,687.6" marker-end="url(#arr)"/>
+<g class="room g-out" data-id="stump" transform="translate(447.5,962.0)">
+<rect class="cardbg" x="-3" y="-3" width="156" height="146" rx="9"/>
+<image href="thumbs/turn004.png" x="0" y="0" width="150" height="103" preserveAspectRatio="xMidYMid slice" clip-path="url(#imgclip)"/>
+<text class="ja" x="75.0" y="119">古い切り株</text>
+<text class="en" x="75.0" y="133">Ancient Stump</text>
+<rect class="badge" x="4" y="4" width="34" height="16" rx="8"/><text class="badget" x="21" y="15.5">×7</text>
+<rect class="badge start" x="106" y="4" width="40" height="16" rx="8"/><text class="badget" x="126" y="15.5">開始</text>
+<rect class="badge inner" x="88" y="83" width="58" height="16" rx="8"/><text class="badget" x="117" y="94.5">屋内あり ▾</text>
+</g>
+<g class="room g-out" data-id="cave_ent" transform="translate(447.5,772.0)">
+<rect class="cardbg" x="-3" y="-3" width="156" height="146" rx="9"/>
+<image href="thumbs/turn005.png" x="0" y="0" width="150" height="103" preserveAspectRatio="xMidYMid slice" clip-path="url(#imgclip)"/>
+<text class="ja" x="75.0" y="119">岩崩れの洞窟入口</text>
+<text class="en" x="75.0" y="133">Cave Entrance</text>
+<rect class="badge" x="4" y="4" width="34" height="16" rx="8"/><text class="badget" x="21" y="15.5">×7</text>
+</g>
+<g class="room g-out" data-id="dark" transform="translate(242.5,772.0)">
+<rect class="cardbg" x="-3" y="-3" width="156" height="146" rx="9"/>
+<image href="thumbs/turn006.png" x="0" y="0" width="150" height="103" preserveAspectRatio="xMidYMid slice" clip-path="url(#imgclip)"/>
+<text class="ja" x="75.0" y="119">森の暗がり</text>
+<text class="en" x="75.0" y="133">Dark Area of the Forest</text>
+<rect class="badge" x="4" y="4" width="34" height="16" rx="8"/><text class="badget" x="21" y="15.5">×15</text>
+</g>
+<g class="room g-out" data-id="road" transform="translate(242.5,582.0)">
+<rect class="cardbg" x="-3" y="-3" width="156" height="146" rx="9"/>
+<image href="thumbs/turn007.png" x="0" y="0" width="150" height="103" preserveAspectRatio="xMidYMid slice" clip-path="url(#imgclip)"/>
+<text class="ja" x="75.0" y="119">小屋と丸太小屋の前の道</text>
+<text class="en" x="75.0" y="133">Dirt Road (Shack / Cabin)</text>
+<rect class="badge" x="4" y="4" width="34" height="16" rx="8"/><text class="badget" x="21" y="15.5">×15</text>
+<rect class="badge inner" x="88" y="83" width="58" height="16" rx="8"/><text class="badget" x="117" y="94.5">屋内あり ▾</text>
+</g>
+<g class="room g-out" data-id="wagon_out" transform="translate(242.5,392.0)">
+<rect class="cardbg" x="-3" y="-3" width="156" height="146" rx="9"/>
+<image href="thumbs/turn008.png" x="0" y="0" width="150" height="103" preserveAspectRatio="xMidYMid slice" clip-path="url(#imgclip)"/>
+<text class="ja" x="75.0" y="119">壊れた馬車のそば</text>
+<text class="en" x="75.0" y="133">Near the Wagon</text>
+<rect class="badge" x="4" y="4" width="34" height="16" rx="8"/><text class="badget" x="21" y="15.5">×17</text>
+<rect class="badge inner" x="88" y="83" width="58" height="16" rx="8"/><text class="badget" x="117" y="94.5">屋内あり ▾</text>
+</g>
+<g class="room g-out" data-id="cemetery" transform="translate(242.5,202.0)">
+<rect class="cardbg" x="-3" y="-3" width="156" height="146" rx="9"/>
+<image href="thumbs/turn027.png" x="0" y="0" width="150" height="103" preserveAspectRatio="xMidYMid slice" clip-path="url(#imgclip)"/>
+<text class="ja" x="75.0" y="119">墓地</text>
+<text class="en" x="75.0" y="133">Cemetery</text>
+<rect class="badge" x="4" y="4" width="34" height="16" rx="8"/><text class="badget" x="21" y="15.5">×18</text>
+<rect class="badge inner" x="88" y="83" width="58" height="16" rx="8"/><text class="badget" x="117" y="94.5">屋内あり ▾</text>
+</g>
+<g class="room g-out" data-id="lake" transform="translate(242.5,962.0)">
+<rect class="cardbg" x="-3" y="-3" width="156" height="146" rx="9"/>
+<image href="thumbs/turn021.png" x="0" y="0" width="150" height="103" preserveAspectRatio="xMidYMid slice" clip-path="url(#imgclip)"/>
+<text class="ja" x="75.0" y="119">湖畔</text>
+<text class="en" x="75.0" y="133">Lake Shore</text>
+<rect class="badge" x="4" y="4" width="34" height="16" rx="8"/><text class="badget" x="21" y="15.5">×12</text>
+</g>
+<g class="room g-out" data-id="forest" transform="translate(37.5,392.0)">
+<rect class="cardbg" x="-3" y="-3" width="156" height="146" rx="9"/>
+<image href="thumbs/turn023.png" x="0" y="0" width="150" height="103" preserveAspectRatio="xMidYMid slice" clip-path="url(#imgclip)"/>
+<text class="ja" x="75.0" y="119">森の中</text>
+<text class="en" x="75.0" y="133">Forest</text>
+<rect class="badge" x="4" y="4" width="34" height="16" rx="8"/><text class="badget" x="21" y="15.5">×10</text>
+</g>
+<g class="room g-out" data-id="clearing" transform="translate(37.5,202.0)">
+<rect class="cardbg" x="-3" y="-3" width="156" height="146" rx="9"/>
+<image href="thumbs/turn068.png" x="0" y="0" width="150" height="103" preserveAspectRatio="xMidYMid slice" clip-path="url(#imgclip)"/>
+<text class="ja" x="75.0" y="119">空き地（怪物の像）</text>
+<text class="en" x="75.0" y="133">Clearing</text>
+<rect class="badge" x="4" y="4" width="34" height="16" rx="8"/><text class="badget" x="21" y="15.5">×23</text>
+</g>
+<g class="room g-out" data-id="dismal" transform="translate(242.5,12.0)">
+<rect class="cardbg" x="-3" y="-3" width="156" height="146" rx="9"/>
+<image href="thumbs/turn028.png" x="0" y="0" width="150" height="103" preserveAspectRatio="xMidYMid slice" clip-path="url(#imgclip)"/>
+<text class="ja" x="75.0" y="119">陰鬱な森</text>
+<text class="en" x="75.0" y="133">Dismal Area of the Forest</text>
+<rect class="badge" x="4" y="4" width="34" height="16" rx="8"/><text class="badget" x="21" y="15.5">×2</text>
+</g>
+<g class="room g-out" data-id="house_out" transform="translate(447.5,12.0)">
+<rect class="cardbg" x="-3" y="-3" width="156" height="146" rx="9"/>
+<image href="thumbs/turn029.png" x="0" y="0" width="150" height="103" preserveAspectRatio="xMidYMid slice" clip-path="url(#imgclip)"/>
+<text class="ja" x="75.0" y="119">古い洋館の前</text>
+<text class="en" x="75.0" y="133">Before the Frame House</text>
+<rect class="badge" x="4" y="4" width="34" height="16" rx="8"/><text class="badget" x="21" y="15.5">×2</text>
+<rect class="badge inner" x="88" y="83" width="58" height="16" rx="8"/><text class="badget" x="117" y="94.5">屋内あり ▾</text>
+</g>
+<g class="room g-out" data-id="foreboding" transform="translate(652.5,392.0)">
+<rect class="cardbg" x="-3" y="-3" width="156" height="146" rx="9"/>
+<image href="thumbs/turn040.png" x="0" y="0" width="150" height="103" preserveAspectRatio="xMidYMid slice" clip-path="url(#imgclip)"/>
+<text class="ja" x="75.0" y="119">不吉な森</text>
+<text class="en" x="75.0" y="133">Foreboding Part</text>
+<rect class="badge" x="4" y="4" width="34" height="16" rx="8"/><text class="badget" x="21" y="15.5">×6</text>
+</g>
+<g class="room g-out" data-id="crossing" transform="translate(447.5,392.0)">
+<rect class="cardbg" x="-3" y="-3" width="156" height="146" rx="9"/>
+<image href="thumbs/turn041.png" x="0" y="0" width="150" height="103" preserveAspectRatio="xMidYMid slice" clip-path="url(#imgclip)"/>
+<text class="ja" x="75.0" y="119">三叉路（北に城）</text>
+<text class="en" x="75.0" y="133">Crossing of Paths</text>
+<rect class="badge" x="4" y="4" width="34" height="16" rx="8"/><text class="badget" x="21" y="15.5">×10</text>
+</g>
+<g class="room g-out" data-id="castle_out" transform="translate(447.5,202.0)">
+<rect class="cardbg" x="-3" y="-3" width="156" height="146" rx="9"/>
+<image href="thumbs/turn047.png" x="0" y="0" width="150" height="103" preserveAspectRatio="xMidYMid slice" clip-path="url(#imgclip)"/>
+<text class="ja" x="75.0" y="119">陰気な城の前</text>
+<text class="en" x="75.0" y="133">Before the Castle</text>
+<rect class="badge" x="4" y="4" width="34" height="16" rx="8"/><text class="badget" x="21" y="15.5">×4</text>
+<rect class="badge inner" x="88" y="83" width="58" height="16" rx="8"/><text class="badget" x="117" y="94.5">屋内あり ▾</text>
+</g>
+<g class="room g-out" data-id="hut_out" transform="translate(652.5,582.0)">
+<rect class="cardbg" x="-3" y="-3" width="156" height="146" rx="9"/>
+<image href="thumbs/turn095.png" x="0" y="0" width="150" height="103" preserveAspectRatio="xMidYMid slice" clip-path="url(#imgclip)"/>
+<text class="ja" x="75.0" y="119">土の小屋の前</text>
+<text class="en" x="75.0" y="133">Near the Clay Hut</text>
+<rect class="badge" x="4" y="4" width="34" height="16" rx="8"/><text class="badget" x="21" y="15.5">×3</text>
+<rect class="badge inner" x="88" y="83" width="58" height="16" rx="8"/><text class="badget" x="117" y="94.5">屋内あり ▾</text>
+</g>
+<g class="room g-out" data-id="sandy" transform="translate(857.5,392.0)">
+<rect class="cardbg" x="-3" y="-3" width="156" height="146" rx="9"/>
+<image href="thumbs/turn190.png" x="0" y="0" width="150" height="103" preserveAspectRatio="xMidYMid slice" clip-path="url(#imgclip)"/>
+<text class="ja" x="75.0" y="119">砂地（ゴブリン）</text>
+<text class="en" x="75.0" y="133">Sandy Field</text>
+<rect class="badge" x="4" y="4" width="34" height="16" rx="8"/><text class="badget" x="21" y="15.5">×6</text>
+</g>
+<rect class="dl" x="512.5" y="914.8" width="20.0" height="18" rx="9"/><text class="dlt" x="522.5" y="927.8">S</text>
+<rect class="dl" x="512.5" y="941.2" width="20.0" height="18" rx="9"/><text class="dlt" x="522.5" y="954.2">N</text>
+<rect class="dl" x="424.7" y="833.0" width="20.0" height="18" rx="9"/><text class="dlt" x="434.7" y="846.0">W</text>
+<rect class="dl" x="395.3" y="833.0" width="20.0" height="18" rx="9"/><text class="dlt" x="405.3" y="846.0">E</text>
+<rect class="dl" x="307.5" y="751.2" width="20.0" height="18" rx="9"/><text class="dlt" x="317.5" y="764.2">N</text>
+<rect class="dl" x="307.5" y="724.8" width="20.0" height="18" rx="9"/><text class="dlt" x="317.5" y="737.8">S</text>
+<rect class="dl" x="307.5" y="561.2" width="20.0" height="18" rx="9"/><text class="dlt" x="317.5" y="574.2">N</text>
+<rect class="dl" x="307.5" y="534.8" width="20.0" height="18" rx="9"/><text class="dlt" x="317.5" y="547.8">S</text>
+<rect class="dl" x="307.5" y="344.8" width="20.0" height="18" rx="9"/><text class="dlt" x="317.5" y="357.8">S</text>
+<rect class="dl" x="307.5" y="371.2" width="20.0" height="18" rx="9"/><text class="dlt" x="317.5" y="384.2">N</text>
+<rect class="dl" x="307.5" y="914.8" width="20.0" height="18" rx="9"/><text class="dlt" x="317.5" y="927.8">S</text>
+<rect class="dl" x="307.5" y="941.2" width="20.0" height="18" rx="9"/><text class="dlt" x="317.5" y="954.2">E</text>
+<rect class="dl" x="183.8" y="820.7" width="20.0" height="18" rx="9"/><text class="dlt" x="193.8" y="833.7">W</text>
+<rect class="dl" x="107.6" y="636.5" width="20.0" height="18" rx="9"/><text class="dlt" x="117.6" y="649.5">S</text>
+<rect class="dl" x="190.3" y="453.0" width="20.0" height="18" rx="9"/><text class="dlt" x="200.3" y="466.0">E</text>
+<rect class="dl" x="219.7" y="453.0" width="20.0" height="18" rx="9"/><text class="dlt" x="229.7" y="466.0">W</text>
+<rect class="dl" x="102.5" y="344.8" width="20.0" height="18" rx="9"/><text class="dlt" x="112.5" y="357.8">S</text>
+<rect class="dl" x="102.5" y="371.2" width="20.0" height="18" rx="9"/><text class="dlt" x="112.5" y="384.2">N</text>
+<rect class="dl" x="219.7" y="263.0" width="20.0" height="18" rx="9"/><text class="dlt" x="229.7" y="276.0">W</text>
+<rect class="dl" x="190.3" y="263.0" width="20.0" height="18" rx="9"/><text class="dlt" x="200.3" y="276.0">E</text>
+<rect class="dl" x="307.5" y="181.2" width="20.0" height="18" rx="9"/><text class="dlt" x="317.5" y="194.2">N</text>
+<rect class="dl" x="395.3" y="73.0" width="20.0" height="18" rx="9"/><text class="dlt" x="405.3" y="86.0">E</text>
+<rect class="dl" x="424.7" y="73.0" width="20.0" height="18" rx="9"/><text class="dlt" x="434.7" y="86.0">W</text>
+<rect class="dl" x="436.3" y="192.4" width="20.0" height="18" rx="9"/><text class="dlt" x="446.3" y="205.4">S</text>
+<rect class="dl" x="600.3" y="453.0" width="20.0" height="18" rx="9"/><text class="dlt" x="610.3" y="466.0">E</text>
+<rect class="dl" x="629.7" y="453.0" width="20.0" height="18" rx="9"/><text class="dlt" x="639.7" y="466.0">W</text>
+<rect class="dl" x="424.7" y="453.0" width="20.0" height="18" rx="9"/><text class="dlt" x="434.7" y="466.0">W</text>
+<rect class="dl" x="395.3" y="453.0" width="20.0" height="18" rx="9"/><text class="dlt" x="405.3" y="466.0">E</text>
+<rect class="dl" x="512.5" y="344.8" width="20.0" height="18" rx="9"/><text class="dlt" x="522.5" y="357.8">S</text>
+<rect class="dl" x="512.5" y="371.2" width="20.0" height="18" rx="9"/><text class="dlt" x="522.5" y="384.2">N</text>
+<rect class="dl" x="717.5" y="534.8" width="20.0" height="18" rx="9"/><text class="dlt" x="727.5" y="547.8">S</text>
+<rect class="dl" x="717.5" y="561.2" width="20.0" height="18" rx="9"/><text class="dlt" x="727.5" y="574.2">N</text>
+<rect class="dl" x="805.3" y="453.0" width="20.0" height="18" rx="9"/><text class="dlt" x="815.3" y="466.0">E</text>
+<rect class="dl" x="834.7" y="453.0" width="20.0" height="18" rx="9"/><text class="dlt" x="844.7" y="466.0">N</text>
+<rect class="dl eg" x="298.8" y="548.0" width="37.4" height="18" rx="9"/><text class="dlt" x="317.5" y="561.0">鷲×2</text>
+<rect class="dl eg" x="512.5" y="705.8" width="20.0" height="18" rx="9"/><text class="dlt" x="522.5" y="718.8">鷲</text>
+</svg></div>
+<h2>屋内・地下</h2>
+<div class="complexes"><section class="complex wide"><h3>陰気な城</h3><p class="sub">三叉路の北。大広間からはしごで塔の最上階へ、地下は 3 階層</p><svg class="map fit" style="max-width:860px" viewBox="0 0 860 1190" width="860" height="1190" xmlns="http://www.w3.org/2000/svg">
+<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#8a7a63"/></marker><clipPath id="imgclip"><rect x="0" y="0" width="150" height="103" rx="6"/></clipPath></defs>
+<path class="edge" d="M430.0,789.0 L430.0,740.0"/>
+<path class="edge" d="M632.0,667.0 L508.0,667.0"/>
+<path class="edge" d="M430.0,594.0 L430.0,545.0"/>
+<path class="edge" d="M150.0,594.0 Q150.0,472.0 352.0,472.0"/>
+<path class="edge" d="M150.0,740.0 L150.0,789.0"/>
+<path class="edge" d="M150.0,935.0 L150.0,984.0"/>
+<path class="edge" d="M430.0,350.0 L430.0,399.0"/>
+<path class="edge special" d="M430.0,204.0 L430.0,155.0"/>
+<g class="room g-out" data-id="castle_out" transform="translate(355.0,792.0)">
+<rect class="cardbg" x="-3" y="-3" width="156" height="146" rx="9"/>
+<image href="thumbs/turn047.png" x="0" y="0" width="150" height="103" preserveAspectRatio="xMidYMid slice" clip-path="url(#imgclip)"/>
+<text class="ja" x="75.0" y="119">陰気な城の前</text>
+<text class="en" x="75.0" y="133">Before the Castle</text>
+<rect class="badge" x="4" y="4" width="34" height="16" rx="8"/><text class="badget" x="21" y="15.5">×4</text>
+</g>
+<g class="room g-castle" data-id="entrance" transform="translate(355.0,597.0)">
+<rect class="cardbg" x="-3" y="-3" width="156" height="146" rx="9"/>
+<image href="thumbs/turn048.png" x="0" y="0" width="150" height="103" preserveAspectRatio="xMidYMid slice" clip-path="url(#imgclip)"/>
+<text class="ja" x="75.0" y="119">城の玄関ホール</text>
+<text class="en" x="75.0" y="133">Castle Entranceway</text>
+<rect class="badge" x="4" y="4" width="34" height="16" rx="8"/><text class="badget" x="21" y="15.5">×5</text>
+</g>
+<g class="room g-castle" data-id="east_room" transform="translate(635.0,597.0)">
+<rect class="cardbg" x="-3" y="-3" width="156" height="146" rx="9"/>
+<image href="thumbs/turn051.png" x="0" y="0" width="150" height="103" preserveAspectRatio="xMidYMid slice" clip-path="url(#imgclip)"/>
+<text class="ja" x="75.0" y="119">城の東の部屋</text>
+<text class="en" x="75.0" y="133">East Room</text>
+<rect class="badge" x="4" y="4" width="34" height="16" rx="8"/><text class="badget" x="21" y="15.5">×4</text>
+</g>
+<g class="room g-castle" data-id="vast" transform="translate(355.0,402.0)">
+<rect class="cardbg" x="-3" y="-3" width="156" height="146" rx="9"/>
+<image href="thumbs/turn054.png" x="0" y="0" width="150" height="103" preserveAspectRatio="xMidYMid slice" clip-path="url(#imgclip)"/>
+<text class="ja" x="75.0" y="119">大広間</text>
+<text class="en" x="75.0" y="133">Vast Chamber</text>
+<rect class="badge" x="4" y="4" width="34" height="16" rx="8"/><text class="badget" x="21" y="15.5">×4</text>
+</g>
+<g class="room g-castle" data-id="high" transform="translate(355.0,207.0)">
+<rect class="cardbg" x="-3" y="-3" width="156" height="146" rx="9"/>
+<image href="thumbs/turn213.png" x="0" y="0" width="150" height="103" preserveAspectRatio="xMidYMid slice" clip-path="url(#imgclip)"/>
+<text class="ja" x="75.0" y="119">高い部屋（はしご）</text>
+<text class="en" x="75.0" y="133">High Chamber</text>
+<rect class="badge" x="4" y="4" width="34" height="16" rx="8"/><text class="badget" x="21" y="15.5">×4</text>
+</g>
+<g class="room g-castle" data-id="tower" transform="translate(355.0,12.0)">
+<rect class="cardbg" x="-3" y="-3" width="156" height="146" rx="9"/>
+<image href="thumbs/turn216.png" x="0" y="0" width="150" height="103" preserveAspectRatio="xMidYMid slice" clip-path="url(#imgclip)"/>
+<text class="ja" x="75.0" y="119">塔の部屋（石棺）</text>
+<text class="en" x="75.0" y="133">Tower Chamber</text>
+<rect class="badge" x="4" y="4" width="34" height="16" rx="8"/><text class="badget" x="21" y="15.5">×8</text>
+</g>
+<g class="room g-castle" data-id="cellar" transform="translate(75.0,597.0)">
+<rect class="cardbg" x="-3" y="-3" width="156" height="146" rx="9"/>
+<image href="thumbs/turn055.png" x="0" y="0" width="150" height="103" preserveAspectRatio="xMidYMid slice" clip-path="url(#imgclip)"/>
+<text class="ja" x="75.0" y="119">地下貯蔵室</text>
+<text class="en" x="75.0" y="133">Cellar</text>
+<rect class="badge" x="4" y="4" width="34" height="16" rx="8"/><text class="badget" x="21" y="15.5">×2</text>
+</g>
+<g class="room g-castle" data-id="dungeon" transform="translate(75.0,792.0)">
+<rect class="cardbg" x="-3" y="-3" width="156" height="146" rx="9"/>
+<image href="thumbs/turn056.png" x="0" y="0" width="150" height="103" preserveAspectRatio="xMidYMid slice" clip-path="url(#imgclip)"/>
+<text class="ja" x="75.0" y="119">かび臭い地下牢</text>
+<text class="en" x="75.0" y="133">Musty Dungeon</text>
+<rect class="badge" x="4" y="4" width="34" height="16" rx="8"/><text class="badget" x="21" y="15.5">×2</text>
+</g>
+<g class="room g-castle" data-id="treasure" transform="translate(75.0,987.0)">
+<rect class="cardbg" x="-3" y="-3" width="156" height="146" rx="9"/>
+<image href="thumbs/turn057.png" x="0" y="0" width="150" height="103" preserveAspectRatio="xMidYMid slice" clip-path="url(#imgclip)"/>
+<text class="ja" x="75.0" y="119">王家の宝物庫</text>
+<text class="en" x="75.0" y="133">Royal Treasure Room</text>
+<rect class="badge" x="4" y="4" width="34" height="16" rx="8"/><text class="badget" x="21" y="15.5">×3</text>
+</g>
+<rect class="dl" x="420.0" y="770.2" width="20.0" height="18" rx="9"/><text class="dlt" x="430.0" y="783.2">N</text>
+<rect class="dl" x="420.0" y="740.8" width="20.0" height="18" rx="9"/><text class="dlt" x="430.0" y="753.8">S</text>
+<rect class="dl" x="597.2" y="658.0" width="20.0" height="18" rx="9"/><text class="dlt" x="607.2" y="671.0">W</text>
+<rect class="dl" x="522.8" y="658.0" width="20.0" height="18" rx="9"/><text class="dlt" x="532.8" y="671.0">E</text>
+<rect class="dl" x="420.0" y="575.2" width="20.0" height="18" rx="9"/><text class="dlt" x="430.0" y="588.2">N</text>
+<rect class="dl" x="420.0" y="545.8" width="20.0" height="18" rx="9"/><text class="dlt" x="430.0" y="558.8">S</text>
+<rect class="dl" x="148.1" y="541.1" width="20.0" height="18" rx="9"/><text class="dlt" x="158.1" y="554.1">U</text>
+<rect class="dl" x="269.3" y="467.9" width="20.0" height="18" rx="9"/><text class="dlt" x="279.3" y="480.9">D</text>
+<rect class="dl" x="140.0" y="740.8" width="20.0" height="18" rx="9"/><text class="dlt" x="150.0" y="753.8">D</text>
+<rect class="dl" x="140.0" y="770.2" width="20.0" height="18" rx="9"/><text class="dlt" x="150.0" y="783.2">U</text>
+<rect class="dl" x="140.0" y="935.8" width="20.0" height="18" rx="9"/><text class="dlt" x="150.0" y="948.8">D</text>
+<rect class="dl" x="140.0" y="965.2" width="20.0" height="18" rx="9"/><text class="dlt" x="150.0" y="978.2">U</text>
+<rect class="dl" x="420.0" y="350.8" width="20.0" height="18" rx="9"/><text class="dlt" x="430.0" y="363.8">D</text>
+<rect class="dl" x="420.0" y="380.2" width="20.0" height="18" rx="9"/><text class="dlt" x="430.0" y="393.2">U</text>
+<rect class="dl sp" x="357.2" y="170.5" width="107.6" height="18" rx="9"/><text class="dlt" x="411.0" y="183.5">CLIMB LADDER</text>
+<rect class="dl" x="420.0" y="153.3" width="20.0" height="18" rx="9"/><text class="dlt" x="430.0" y="166.3">D</text>
+</svg></section><section class="complex"><h3>墓地の地下</h3><p class="sub">墓石を動かすと格子が現れ、鍵で開けて降りる</p><svg class="map fit" style="max-width:580px" viewBox="0 0 580 215" width="580" height="215" xmlns="http://www.w3.org/2000/svg">
+<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#8a7a63"/></marker><clipPath id="imgclip"><rect x="0" y="0" width="150" height="103" rx="6"/></clipPath></defs>
+<path class="edge special" d="M228.0,82.0 L352.0,82.0"/>
+<g class="room g-out" data-id="cemetery" transform="translate(75.0,12.0)">
+<rect class="cardbg" x="-3" y="-3" width="156" height="146" rx="9"/>
+<image href="thumbs/turn027.png" x="0" y="0" width="150" height="103" preserveAspectRatio="xMidYMid slice" clip-path="url(#imgclip)"/>
+<text class="ja" x="75.0" y="119">墓地</text>
+<text class="en" x="75.0" y="133">Cemetery</text>
+<rect class="badge" x="4" y="4" width="34" height="16" rx="8"/><text class="badget" x="21" y="15.5">×18</text>
+</g>
+<g class="room g-cemetery" data-id="secret" transform="translate(355.0,12.0)">
+<rect class="cardbg" x="-3" y="-3" width="156" height="146" rx="9"/>
+<image href="thumbs/turn205.png" x="0" y="0" width="150" height="103" preserveAspectRatio="xMidYMid slice" clip-path="url(#imgclip)"/>
+<text class="ja" x="75.0" y="119">墓地の地下室</text>
+<text class="en" x="75.0" y="133">Secret Chamber</text>
+<rect class="badge" x="4" y="4" width="34" height="16" rx="8"/><text class="badget" x="21" y="15.5">×2</text>
+</g>
+<rect class="dl sp" x="240.1" y="54.0" width="99.8" height="18" rx="9"/><text class="dlt" x="290.0" y="67.0">ENTER GRATE</text>
+<rect class="dl" x="323.4" y="73.0" width="20.0" height="18" rx="9"/><text class="dlt" x="333.4" y="86.0">U</text>
+</svg></section><section class="complex"><h3>古い洋館</h3><p class="sub">陰鬱な森の東。2 階の屋根裏に銃</p><svg class="map fit" style="max-width:580px" viewBox="0 0 580 410" width="580" height="410" xmlns="http://www.w3.org/2000/svg">
+<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#8a7a63"/></marker><clipPath id="imgclip"><rect x="0" y="0" width="150" height="103" rx="6"/></clipPath></defs>
+<path class="edge special" d="M352.0,277.0 L228.0,277.0"/>
+<path class="edge" d="M430.0,155.0 L430.0,204.0"/>
+<g class="room g-out" data-id="house_out" transform="translate(75.0,207.0)">
+<rect class="cardbg" x="-3" y="-3" width="156" height="146" rx="9"/>
+<image href="thumbs/turn029.png" x="0" y="0" width="150" height="103" preserveAspectRatio="xMidYMid slice" clip-path="url(#imgclip)"/>
+<text class="ja" x="75.0" y="119">古い洋館の前</text>
+<text class="en" x="75.0" y="133">Before the Frame House</text>
+<rect class="badge" x="4" y="4" width="34" height="16" rx="8"/><text class="badget" x="21" y="15.5">×2</text>
+</g>
+<g class="room g-house" data-id="house_in" transform="translate(355.0,207.0)">
+<rect class="cardbg" x="-3" y="-3" width="156" height="146" rx="9"/>
+<image href="thumbs/turn030.png" x="0" y="0" width="150" height="103" preserveAspectRatio="xMidYMid slice" clip-path="url(#imgclip)"/>
+<text class="ja" x="75.0" y="119">洋館の中</text>
+<text class="en" x="75.0" y="133">Inside the House</text>
+<rect class="badge" x="4" y="4" width="34" height="16" rx="8"/><text class="badget" x="21" y="15.5">×3</text>
+</g>
+<g class="room g-house" data-id="attic" transform="translate(355.0,12.0)">
+<rect class="cardbg" x="-3" y="-3" width="156" height="146" rx="9"/>
+<image href="thumbs/turn031.png" x="0" y="0" width="150" height="103" preserveAspectRatio="xMidYMid slice" clip-path="url(#imgclip)"/>
+<text class="ja" x="75.0" y="119">屋根裏</text>
+<text class="en" x="75.0" y="133">Large Attic</text>
+<rect class="badge" x="4" y="4" width="34" height="16" rx="8"/><text class="badget" x="21" y="15.5">×5</text>
+</g>
+<rect class="dl sp" x="240.1" y="249.0" width="99.8" height="18" rx="9"/><text class="dlt" x="290.0" y="262.0">ENTER HOUSE</text>
+<rect class="dl" x="323.4" y="268.0" width="20.0" height="18" rx="9"/><text class="dlt" x="333.4" y="281.0">E</text>
+<rect class="dl" x="420.0" y="155.8" width="20.0" height="18" rx="9"/><text class="dlt" x="430.0" y="168.8">D</text>
+<rect class="dl" x="420.0" y="185.2" width="20.0" height="18" rx="9"/><text class="dlt" x="430.0" y="198.2">U</text>
+</svg></section><section class="complex"><h3>壊れた馬車</h3><p class="sub">棺の中にネズミと銀の弾丸</p><svg class="map fit" style="max-width:580px" viewBox="0 0 580 215" width="580" height="215" xmlns="http://www.w3.org/2000/svg">
+<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#8a7a63"/></marker><clipPath id="imgclip"><rect x="0" y="0" width="150" height="103" rx="6"/></clipPath></defs>
+<path class="edge special" d="M352.0,82.0 L228.0,82.0"/>
+<g class="room g-out" data-id="wagon_out" transform="translate(75.0,12.0)">
+<rect class="cardbg" x="-3" y="-3" width="156" height="146" rx="9"/>
+<image href="thumbs/turn008.png" x="0" y="0" width="150" height="103" preserveAspectRatio="xMidYMid slice" clip-path="url(#imgclip)"/>
+<text class="ja" x="75.0" y="119">壊れた馬車のそば</text>
+<text class="en" x="75.0" y="133">Near the Wagon</text>
+<rect class="badge" x="4" y="4" width="34" height="16" rx="8"/><text class="badget" x="21" y="15.5">×17</text>
+</g>
+<g class="room g-wagon" data-id="wagon_in" transform="translate(355.0,12.0)">
+<rect class="cardbg" x="-3" y="-3" width="156" height="146" rx="9"/>
+<image href="thumbs/turn009.png" x="0" y="0" width="150" height="103" preserveAspectRatio="xMidYMid slice" clip-path="url(#imgclip)"/>
+<text class="ja" x="75.0" y="119">馬車の中</text>
+<text class="en" x="75.0" y="133">Inside the Wagon</text>
+<rect class="badge" x="4" y="4" width="34" height="16" rx="8"/><text class="badget" x="21" y="15.5">×4</text>
+</g>
+<rect class="dl sp" x="240.1" y="54.0" width="99.8" height="18" rx="9"/><text class="dlt" x="290.0" y="67.0">ENTER WAGON</text>
+<rect class="dl" x="323.4" y="73.0" width="20.0" height="18" rx="9"/><text class="dlt" x="333.4" y="86.0">D</text>
+</svg></section><section class="complex wide"><h3>丸太小屋</h3><p class="sub">鹿の角を引くと隠し部屋（マント）</p><svg class="map fit" style="max-width:860px" viewBox="0 0 860 215" width="860" height="215" xmlns="http://www.w3.org/2000/svg">
+<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#8a7a63"/></marker><clipPath id="imgclip"><rect x="0" y="0" width="150" height="103" rx="6"/></clipPath></defs>
+<path class="edge special" d="M352.0,82.0 L228.0,82.0"/>
+<path class="edge special" d="M632.0,82.0 L508.0,82.0"/>
+<g class="room g-out" data-id="road" transform="translate(75.0,12.0)">
+<rect class="cardbg" x="-3" y="-3" width="156" height="146" rx="9"/>
+<image href="thumbs/turn007.png" x="0" y="0" width="150" height="103" preserveAspectRatio="xMidYMid slice" clip-path="url(#imgclip)"/>
+<text class="ja" x="75.0" y="119">小屋と丸太小屋の前の道</text>
+<text class="en" x="75.0" y="133">Dirt Road (Shack / Cabin)</text>
+<rect class="badge" x="4" y="4" width="34" height="16" rx="8"/><text class="badget" x="21" y="15.5">×15</text>
+</g>
+<g class="room g-cabin" data-id="cabin" transform="translate(355.0,12.0)">
+<rect class="cardbg" x="-3" y="-3" width="156" height="146" rx="9"/>
+<image href="thumbs/turn075.png" x="0" y="0" width="150" height="103" preserveAspectRatio="xMidYMid slice" clip-path="url(#imgclip)"/>
+<text class="ja" x="75.0" y="119">丸太小屋の中</text>
+<text class="en" x="75.0" y="133">Log Cabin</text>
+<rect class="badge" x="4" y="4" width="34" height="16" rx="8"/><text class="badget" x="21" y="15.5">×2</text>
+</g>
+<g class="room g-cabin" data-id="annex" transform="translate(635.0,12.0)">
+<rect class="cardbg" x="-3" y="-3" width="156" height="146" rx="9"/>
+<image href="thumbs/turn076.png" x="0" y="0" width="150" height="103" preserveAspectRatio="xMidYMid slice" clip-path="url(#imgclip)"/>
+<text class="ja" x="75.0" y="119">隠し部屋</text>
+<text class="en" x="75.0" y="133">Secret Annex</text>
+<rect class="badge" x="4" y="4" width="34" height="16" rx="8"/><text class="badget" x="21" y="15.5">×5</text>
+</g>
+<rect class="dl sp" x="251.8" y="54.0" width="76.4" height="18" rx="9"/><text class="dlt" x="290.0" y="67.0">GO CABIN</text>
+<rect class="dl" x="323.4" y="73.0" width="20.0" height="18" rx="9"/><text class="dlt" x="333.4" y="86.0">W</text>
+<rect class="dl sp" x="516.2" y="73.0" width="107.6" height="18" rx="9"/><text class="dlt" x="570.0" y="86.0">PULL HORNS ⇄</text>
+</svg></section><section class="complex"><h3>土の小屋</h3><p class="sub">猫が酸を守っている</p><svg class="map fit" style="max-width:580px" viewBox="0 0 580 215" width="580" height="215" xmlns="http://www.w3.org/2000/svg">
+<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#8a7a63"/></marker><clipPath id="imgclip"><rect x="0" y="0" width="150" height="103" rx="6"/></clipPath></defs>
+<path class="edge special" d="M352.0,82.0 L228.0,82.0"/>
+<g class="room g-out" data-id="hut_out" transform="translate(75.0,12.0)">
+<rect class="cardbg" x="-3" y="-3" width="156" height="146" rx="9"/>
+<image href="thumbs/turn095.png" x="0" y="0" width="150" height="103" preserveAspectRatio="xMidYMid slice" clip-path="url(#imgclip)"/>
+<text class="ja" x="75.0" y="119">土の小屋の前</text>
+<text class="en" x="75.0" y="133">Near the Clay Hut</text>
+<rect class="badge" x="4" y="4" width="34" height="16" rx="8"/><text class="badget" x="21" y="15.5">×3</text>
+</g>
+<g class="room g-hut" data-id="hut_in" transform="translate(355.0,12.0)">
+<rect class="cardbg" x="-3" y="-3" width="156" height="146" rx="9"/>
+<image href="thumbs/turn096.png" x="0" y="0" width="150" height="103" preserveAspectRatio="xMidYMid slice" clip-path="url(#imgclip)"/>
+<text class="ja" x="75.0" y="119">土の小屋の中</text>
+<text class="en" x="75.0" y="133">Inside the Clay Hut</text>
+<rect class="badge" x="4" y="4" width="34" height="16" rx="8"/><text class="badget" x="21" y="15.5">×3</text>
+</g>
+<rect class="dl sp" x="247.9" y="54.0" width="84.2" height="18" rx="9"/><text class="dlt" x="290.0" y="67.0">ENTER HUT</text>
+<rect class="dl" x="323.4" y="73.0" width="20.0" height="18" rx="9"/><text class="dlt" x="333.4" y="86.0">W</text>
+</svg></section><section class="complex wide"><h3>切り株の隠し洞窟</h3><p class="sub">酸で文字を出し、叩くと洞窟へ。本を取ると外へ</p><svg class="map fit" style="max-width:860px" viewBox="0 0 860 410" width="860" height="410" xmlns="http://www.w3.org/2000/svg">
+<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#8a7a63"/></marker><clipPath id="imgclip"><rect x="0" y="0" width="150" height="103" rx="6"/></clipPath></defs>
+<path class="edge special" d="M632.0,251.9 Q430.0,187.0 228.0,251.9" marker-start="url(#arr)"/>
+<path class="edge special" d="M710.0,155.0 L710.0,204.0"/>
+<g class="room g-out" data-id="stump" transform="translate(75.0,207.0)">
+<rect class="cardbg" x="-3" y="-3" width="156" height="146" rx="9"/>
+<image href="thumbs/turn004.png" x="0" y="0" width="150" height="103" preserveAspectRatio="xMidYMid slice" clip-path="url(#imgclip)"/>
+<text class="ja" x="75.0" y="119">古い切り株</text>
+<text class="en" x="75.0" y="133">Ancient Stump</text>
+<rect class="badge" x="4" y="4" width="34" height="16" rx="8"/><text class="badget" x="21" y="15.5">×7</text>
+<rect class="badge start" x="106" y="4" width="40" height="16" rx="8"/><text class="badget" x="126" y="15.5">開始</text>
+</g>
+<g class="room g-cave" data-id="cave_book" transform="translate(635.0,207.0)">
+<rect class="cardbg" x="-3" y="-3" width="156" height="146" rx="9"/>
+<image href="thumbs/turn116.png" x="0" y="0" width="150" height="103" preserveAspectRatio="xMidYMid slice" clip-path="url(#imgclip)"/>
+<text class="ja" x="75.0" y="119">暗い小洞窟（魔法の本）</text>
+<text class="en" x="75.0" y="133">Small Dark Cave</text>
+<rect class="badge" x="4" y="4" width="34" height="16" rx="8"/><text class="badget" x="21" y="15.5">×16</text>
+</g>
+<g class="room g-cave" data-id="cave_ball" transform="translate(635.0,12.0)">
+<rect class="cardbg" x="-3" y="-3" width="156" height="146" rx="9"/>
+<image href="thumbs/turn130.png" x="0" y="0" width="150" height="103" preserveAspectRatio="xMidYMid slice" clip-path="url(#imgclip)"/>
+<text class="ja" x="75.0" y="119">水晶玉の洞窟</text>
+<text class="en" x="75.0" y="133">Crystal Ball Cave</text>
+<rect class="badge" x="4" y="4" width="34" height="16" rx="8"/><text class="badget" x="21" y="15.5">×7</text>
+</g>
+<rect class="dl sp" x="380.1" y="210.5" width="99.8" height="18" rx="9"/><text class="dlt" x="430.0" y="223.5">KNOCK STUMP</text>
+<rect class="dl sp" x="656.2" y="170.5" width="107.6" height="18" rx="9"/><text class="dlt" x="710.0" y="183.5">ENTER DOOR ⇄</text>
+</svg></section></div>
+<h2>場所一覧（初回到達順）</h2>
+<ul class="roomlist"><li data-id="stump">古い切り株 <small>Ancient Stump · ×7</small></li><li data-id="cave_ent">岩崩れの洞窟入口 <small>Cave Entrance · ×7</small></li><li data-id="dark">森の暗がり <small>Dark Area of the Forest · ×15</small></li><li data-id="road">小屋と丸太小屋の前の道 <small>Dirt Road (Shack / Cabin) · ×15</small></li><li data-id="wagon_out">壊れた馬車のそば <small>Near the Wagon · ×17</small></li><li data-id="wagon_in">馬車の中 <small>Inside the Wagon · ×4</small></li><li data-id="cemetery">墓地 <small>Cemetery · ×18</small></li><li data-id="lake">湖畔 <small>Lake Shore · ×12</small></li><li data-id="forest">森の中 <small>Forest · ×10</small></li><li data-id="clearing">空き地（怪物の像） <small>Clearing · ×23</small></li><li data-id="dismal">陰鬱な森 <small>Dismal Area of the Forest · ×2</small></li><li data-id="house_out">古い洋館の前 <small>Before the Frame House · ×2</small></li><li data-id="house_in">洋館の中 <small>Inside the House · ×3</small></li><li data-id="attic">屋根裏 <small>Large Attic · ×5</small></li><li data-id="foreboding">不吉な森 <small>Foreboding Part · ×6</small></li><li data-id="crossing">三叉路（北に城） <small>Crossing of Paths · ×10</small></li><li data-id="castle_out">陰気な城の前 <small>Before the Castle · ×4</small></li><li data-id="entrance">城の玄関ホール <small>Castle Entranceway · ×5</small></li><li data-id="east_room">城の東の部屋 <small>East Room · ×4</small></li><li data-id="vast">大広間 <small>Vast Chamber · ×4</small></li><li data-id="cellar">地下貯蔵室 <small>Cellar · ×2</small></li><li data-id="dungeon">かび臭い地下牢 <small>Musty Dungeon · ×2</small></li><li data-id="treasure">王家の宝物庫 <small>Royal Treasure Room · ×3</small></li><li data-id="cabin">丸太小屋の中 <small>Log Cabin · ×2</small></li><li data-id="annex">隠し部屋 <small>Secret Annex · ×5</small></li><li data-id="hut_out">土の小屋の前 <small>Near the Clay Hut · ×3</small></li><li data-id="hut_in">土の小屋の中 <small>Inside the Clay Hut · ×3</small></li><li data-id="cave_book">暗い小洞窟（魔法の本） <small>Small Dark Cave · ×16</small></li><li data-id="cave_ball">水晶玉の洞窟 <small>Crystal Ball Cave · ×7</small></li><li data-id="sandy">砂地（ゴブリン） <small>Sandy Field · ×6</small></li><li data-id="secret">墓地の地下室 <small>Secret Chamber · ×2</small></li><li data-id="high">高い部屋（はしご） <small>High Chamber · ×4</small></li><li data-id="tower">塔の部屋（石棺） <small>Tower Chamber · ×8</small></li></ul>
+</main>
+<aside id="panel"></aside>
+<script>
+const D = {"stump": {"ja": "古い切り株", "en": "Ancient Stump", "desc": "YOU ARE FACING AN ANCIENT STUMP COVERED WITH FAINT WRITING. A PATH LEADS N.", "shot": "thumbs/turn004_full.png", "exits": "N", "items": [], "enemies": [], "visits": 7, "turns": [4, 85, 112, 113, 114, 115, 139], "actions": [{"turn": 112, "cmd": "POUR ACID", "result": "THE ACID SIZZLES VIOLENTLY OVER THE WRITING.  YOU CAN READ IT NOW. <PRESS A KEY TO CONTINUE>"}, {"turn": 113, "cmd": "READ STUMP", "result": ""}, {"turn": 114, "cmd": "READ STUMP", "result": "THE WRITING SAYS 'KNOCK HERE'."}], "links": [["KNOCK STUMP", "cave_book"], ["N", "cave_ent"]]}, "cave_ent": {"ja": "岩崩れの洞窟入口", "en": "Cave Entrance", "desc": "YOU ARE NEAR A CAVE ENTRANCE SHUT BY A ROCK SLIDE. PATHS LEAD W & S.", "shot": "thumbs/turn005_full.png", "exits": "SW", "items": [], "enemies": [], "visits": 7, "turns": [5, 84, 86, 88, 89, 111, 140], "actions": [], "links": [["S", "stump"], ["W", "dark"]]}, "dark": {"ja": "森の暗がり", "en": "Dark Area of the Forest", "desc": "YOU ARE IN A DARK AREA OF THE FOREST. PATHS GO N/W/E/S.", "shot": "thumbs/turn006_full.png", "exits": "ENSW", "items": ["WRINKLED NOTE"], "enemies": ["MENACING WEREWOLF"], "visits": 15, "turns": [6, 18, 20, 22, 70, 83, 87, 90, 110, 141, 171, 180, 185, 231, 232], "actions": [], "links": [["E", "cave_ent"], ["N", "road"], ["S", "lake"], ["W", "forest"]]}, "road": {"ja": "小屋と丸太小屋の前の道", "en": "Dirt Road (Shack / Cabin)", "desc": "YOU ARE FACING A SHACK ON A N/S DIRT ROAD. BEHIND YOU IS A LOG CABIN.", "shot": "thumbs/turn007_full.png", "exits": "NS", "items": [], "enemies": ["MENACING WEREWOLF"], "visits": 15, "turns": [7, 19, 71, 72, 73, 74, 82, 91, 103, 104, 109, 142, 172, 186, 230], "actions": [{"turn": 73, "cmd": "EXAMINE LOG CABIN", "result": "I DON'T KNOW THAT WORD."}], "links": [["GO CABIN", "cabin"], ["N", "wagon_out"], ["S", "dark"]]}, "wagon_out": {"ja": "壊れた馬車のそば", "en": "Near the Wagon", "desc": "YOU ARE STANDING NEAR A BROKEN HORSE-DRAWN WAGON. PATHS GO N/W/E/S.", "shot": "thumbs/turn008_full.png", "exits": "ENSW", "items": [], "enemies": ["MENACING WEREWOLF"], "visits": 17, "turns": [8, 13, 15, 24, 42, 45, 66, 92, 102, 108, 143, 161, 173, 187, 198, 208, 229], "actions": [], "links": [["E", "crossing"], ["ENTER WAGON", "wagon_in"], ["N", "cemetery"], ["S", "road"], ["W", "forest"]]}, "wagon_in": {"ja": "馬車の中", "en": "Inside the Wagon", "desc": "YOU ARE IN A BROKEN HORSE-DRAWN WAGON.", "shot": "thumbs/turn009_full.png", "exits": "D", "items": ["CLOSED WOODEN COFFIN", "ROTTING CORPSE", "SILVER BULLET", "TRIO OF RAVENOUS MICE", "WOODEN COFFIN WHICH HAS BEEN"], "enemies": [], "visits": 4, "turns": [9, 10, 11, 12], "actions": [{"turn": 9, "cmd": "OPEN COFFIN", "result": "AS YOU LIFT THE LID AN OVERPOWERING STENCH HITS YOU... THERE IS A WOODEN COFFIN WHICH HAS BEEN"}, {"turn": 10, "cmd": "TAKE MICE", "result": "OK. THERE IS A WOODEN COFFIN WHICH HAS BEEN OPENED."}, {"turn": 11, "cmd": "TAKE BULLET", "result": "OK. THERE IS A WOODEN COFFIN WHICH HAS BEEN OPENED."}], "links": [["D", "wagon_out"]]}, "cemetery": {"ja": "墓地", "en": "Cemetery", "desc": "YOU ARE IN A CEMETERY. PATHS GO N/W/S.", "shot": "thumbs/turn027_full.png", "exits": "NSW", "items": ["GRAVESTONE", "LARGE RUSTY GRATE", "WOODEN CROSS"], "enemies": ["MENACING WEREWOLF"], "visits": 18, "turns": [14, 16, 17, 27, 43, 44, 156, 160, 162, 169, 170, 199, 200, 201, 202, 203, 204, 207], "actions": [{"turn": 43, "cmd": "TAKE CROSS", "result": "OK. THERE IS A GRAVESTONE."}, {"turn": 199, "cmd": "PUSH TOMBSTONE", "result": "IT WON'T BUDGE."}, {"turn": 200, "cmd": "PUSH TOMBSTONE", "result": "IT WON'T BUDGE."}, {"turn": 201, "cmd": "OPEN GRATE", "result": "IT'S LOCKED."}, {"turn": 202, "cmd": "UNLOCK GRATE", "result": "OK."}, {"turn": 203, "cmd": "OPEN GRATE", "result": "IT'S ALREADY OPEN."}], "links": [["ENTER GRATE", "secret"], ["N", "dismal"], ["S", "wagon_out"], ["W", "clearing"]]}, "lake": {"ja": "湖畔", "en": "Lake Shore", "desc": "YOU ARE ON A LAKE SHORE. A PATH GOES E.", "shot": "thumbs/turn021_full.png", "exits": "E", "items": ["BULLFROG", "SMALL SAILBOAT"], "enemies": [], "visits": 12, "turns": [21, 181, 182, 183, 184, 233, 234, 235, 236, 237, 238, 239], "actions": [{"turn": 181, "cmd": "FEED FROG", "result": "THE BULLFROG SPRINGS FORWARD AND WOLFS DOWN THE FLIES. 'THANKS,' HE SAYS, 'THAT HOWLING SURE WHETS YOUR APPETITE. SAY"}, {"turn": 234, "cmd": "SAIL", "result": "I'M SORRY - I DON'T UNDERSTAND."}, {"turn": 235, "cmd": "SAIL BOAT", "result": "AFTER A PRECARIOUS FEW MINUTES, THE JOURNEY GOES SMOOTHLY. A SOMEWHAT TIRED AND BEWILDERED PRINCESS SABRINA"}], "links": [["E", "dark"]]}, "forest": {"ja": "森の中", "en": "Forest", "desc": "YOU ARE STILL IN THE FOREST. PATHS GO N/E/S.", "shot": "thumbs/turn023_full.png", "exits": "ENS", "items": [], "enemies": ["MENACING WEREWOLF"], "visits": 10, "turns": [23, 25, 67, 69, 144, 154, 158, 165, 174, 179], "actions": [], "links": [["E", "wagon_out"], ["N", "clearing"], ["S", "dark"]]}, "clearing": {"ja": "空き地（怪物の像）", "en": "Clearing", "desc": "YOU ARE IN A CLEARING. PATHS GO S/E.", "shot": "thumbs/turn068_full.png", "exits": "ES", "items": ["30 FOOT CIRCLE OF SMOKING", "BRILLIANTLY GLOWING SAUCER", "STATUE OF A STRANGE CREATURE"], "enemies": ["MENACING WEREWOLF"], "visits": 23, "turns": [26, 68, 145, 146, 147, 148, 149, 150, 151, 152, 153, 155, 157, 159, 163, 164, 166, 167, 168, 175, 176, 177, 178], "actions": [{"turn": 145, "cmd": "WEAR CLOAK", "result": "OK."}, {"turn": 146, "cmd": "WEAR RING", "result": "OK."}, {"turn": 147, "cmd": "WAVE RING", "result": "A STREAM OF WHITE FIRE SHOOTS FROM YOUR RING ONTO THE STATUE. GREEN AND WHITE FLAMES BURN QUICKLY, ENGULFING ALL THAT"}, {"turn": 177, "cmd": "INVENTORY", "result": "YOU ARE CARRYING: DUSTY WIZARD'S CLOAK. WOODEN CROSS."}], "links": [["E", "cemetery"], ["S", "forest"]]}, "dismal": {"ja": "陰鬱な森", "en": "Dismal Area of the Forest", "desc": "YOU ARE IN A DISMAL AREA OF THE FOREST. PATHS GO W/E/S.", "shot": "thumbs/turn028_full.png", "exits": "ESW", "items": [], "enemies": [], "visits": 2, "turns": [28, 39], "actions": [], "links": [["E", "house_out"], ["S", "foreboding"]]}, "house_out": {"ja": "古い洋館の前", "en": "Before the Frame House", "desc": "YOU ARE BEFORE AN OLD BUT ELEGANT FRAME HOUSE. A DIRT ROAD GOES WEST.", "shot": "thumbs/turn029_full.png", "exits": "W", "items": [], "enemies": [], "visits": 2, "turns": [29, 38], "actions": [], "links": [["ENTER HOUSE", "house_in"], ["W", "dismal"]]}, "house_in": {"ja": "洋館の中", "en": "Inside the House", "desc": "YOU ARE IN AN OLD HOUSE. STAIRS LEAD U.", "shot": "thumbs/turn030_full.png", "exits": "EU", "items": ["LOAF OF STALE BREAD"], "enemies": [], "visits": 3, "turns": [30, 36, 37], "actions": [], "links": [["E", "house_out"], ["U", "attic"]]}, "attic": {"ja": "屋根裏", "en": "Large Attic", "desc": "YOU ARE IN A LARGE ATTIC. STAIRS LEAD DOWN.", "shot": "thumbs/turn031_full.png", "exits": "D", "items": ["FLINTLOCK PISTOL"], "enemies": ["MENACING WEREWOLF"], "visits": 5, "turns": [31, 32, 33, 34, 35], "actions": [{"turn": 31, "cmd": "TAKE PISTOL", "result": "OK."}, {"turn": 32, "cmd": "LOAD PISTOL", "result": "OK. THERE IS A MENACING WEREWOLF."}, {"turn": 33, "cmd": "SHOOT WEREWOLF", "result": "GOT HIM!  WITH A DESPERATE HOWL THE WEREWOLF COLLAPSES. SLOWLY ITS OUTLINE CHANGES TO THAT OF A DECREPIT OLD MAN,"}], "links": [["D", "house_in"]]}, "foreboding": {"ja": "不吉な森", "en": "Foreboding Part", "desc": "YOU ARE IN A FOREBODING PART OF THE FOREST. PATHS GO N/W/E/S.", "shot": "thumbs/turn040_full.png", "exits": "ENSW", "items": [], "enemies": [], "visits": 6, "turns": [40, 94, 100, 106, 189, 196], "actions": [], "links": [["E", "sandy"], ["S", "hut_out"], ["W", "crossing"]]}, "crossing": {"ja": "三叉路（北に城）", "en": "Crossing of Paths", "desc": "YOU ARE AT THE CROSSING OF N/W/E PATHS. TO THE N LIES A CASTLE.", "shot": "thumbs/turn041_full.png", "exits": "ENW", "items": [], "enemies": [], "visits": 10, "turns": [41, 46, 65, 93, 101, 107, 188, 197, 209, 228], "actions": [], "links": [["E", "foreboding"], ["N", "castle_out"], ["W", "wagon_out"]]}, "castle_out": {"ja": "陰気な城の前", "en": "Before the Castle", "desc": "YOU ARE STANDING BEFORE A GLOOMY CASTLE. A PATH GOES SOUTH.", "shot": "thumbs/turn047_full.png", "exits": "NS", "items": [], "enemies": [], "visits": 4, "turns": [47, 64, 210, 227], "actions": [], "links": [["N", "entrance"], ["S", "crossing"]]}, "entrance": {"ja": "城の玄関ホール", "en": "Castle Entranceway", "desc": "YOU ARE IN THE CASTLE'S N/S ENTRANCEWAY. OTHER EXITS LEAD W & E.", "shot": "thumbs/turn048_full.png", "exits": "ENSW", "items": [], "enemies": [], "visits": 5, "turns": [48, 53, 63, 211, 226], "actions": [], "links": [["E", "east_room"], ["N", "vast"], ["S", "castle_out"]]}, "east_room": {"ja": "城の東の部屋", "en": "East Room", "desc": "YOU ARE IN A ROOM. AN EXIT GOES W.", "shot": "thumbs/turn051_full.png", "exits": "W", "items": ["PIECE OF FLYPAPER"], "enemies": ["VAMPIRE"], "visits": 4, "turns": [49, 50, 51, 52], "actions": [{"turn": 49, "cmd": "SHOW CROSS", "result": "A STREAM OF BLINDING LIGHT ESCAPES FROM THE CROSS. <PRESS A KEY TO CONTINUE>"}, {"turn": 51, "cmd": "TAKE FLYPAPER", "result": "OK."}], "links": [["W", "entrance"]]}, "vast": {"ja": "大広間", "en": "Vast Chamber", "desc": "YOU ARE IN A VAST CHAMBER. STAIRS GO U & A HALL SLOPES D. AN EXIT LIES S.", "shot": "thumbs/turn054_full.png", "exits": "DSU", "items": [], "enemies": [], "visits": 4, "turns": [54, 62, 212, 225], "actions": [], "links": [["D", "cellar"], ["S", "entrance"], ["U", "high"]]}, "cellar": {"ja": "地下貯蔵室", "en": "Cellar", "desc": "YOU ARE IN THE CELLAR WITH A VAULT DOOR. EXITS GO S/U/D.", "shot": "thumbs/turn055_full.png", "exits": "DSU", "items": [], "enemies": [], "visits": 2, "turns": [55, 61], "actions": [], "links": [["D", "dungeon"], ["U", "vast"]]}, "dungeon": {"ja": "かび臭い地下牢", "en": "Musty Dungeon", "desc": "YOU ARE IN A MUSTY DUNGEON. STAIRS SLOPE UP AND DOWN.", "shot": "thumbs/turn056_full.png", "exits": "DU", "items": [], "enemies": [], "visits": 2, "turns": [56, 60], "actions": [], "links": [["D", "treasure"], ["U", "cellar"]]}, "treasure": {"ja": "王家の宝物庫", "en": "Royal Treasure Room", "desc": "YOU ARE IN THE ROYAL TREASURE ROOM. STAIRS LEAD UP.", "shot": "thumbs/turn057_full.png", "exits": "U", "items": ["COFFER WHICH IS OPEN", "SHINY RING", "TREASURE COFFER"], "enemies": [], "visits": 3, "turns": [57, 58, 59], "actions": [{"turn": 57, "cmd": "OPEN COFFER", "result": "OK. THERE IS A COFFER WHICH IS OPEN. THERE IS A SHINY RING."}, {"turn": 58, "cmd": "TAKE RING", "result": "OK. THERE IS A COFFER WHICH IS OPEN."}], "links": [["U", "dungeon"]]}, "cabin": {"ja": "丸太小屋の中", "en": "Log Cabin", "desc": "YOU ARE IN A LOG CABIN. AN EXIT GOES W.", "shot": "thumbs/turn075_full.png", "exits": "W", "items": [], "enemies": [], "visits": 2, "turns": [75, 81], "actions": [], "links": [["PULL HORNS", "annex"], ["W", "road"]]}, "annex": {"ja": "隠し部屋", "en": "Secret Annex", "desc": "YOU ARE IN A SECRET ANNEX.", "shot": "thumbs/turn076_full.png", "exits": "", "items": ["DUSTY WIZARD'S CLOAK", "SMOKING FLINTLOCK PISTOL"], "enemies": [], "visits": 5, "turns": [76, 77, 78, 79, 80], "actions": [{"turn": 76, "cmd": "TAKE CLOAK", "result": "YOU ARE CARRYING TOO MUCH. BETTER DROP SOMETHING FIRST."}, {"turn": 77, "cmd": "DROP PISTOL", "result": "OK. THERE IS A SMOKING FLINTLOCK PISTOL."}, {"turn": 78, "cmd": "TAKE CLOAK", "result": "OK. FAR AWAY A CLOCK STRIKES 1. <PRESS A KEY TO CONTINUE>"}], "links": [["PULL HORNS", "cabin"]]}, "hut_out": {"ja": "土の小屋の前", "en": "Near the Clay Hut", "desc": "YOU ARE NEAR A CLAY HUT. PATHS GO N/S.", "shot": "thumbs/turn095_full.png", "exits": "NS", "items": [], "enemies": [], "visits": 3, "turns": [95, 99, 105], "actions": [], "links": [["ENTER HUT", "hut_in"], ["N", "foreboding"]]}, "hut_in": {"ja": "土の小屋の中", "en": "Inside the Clay Hut", "desc": "YOU ARE IN A CLAY HUT. EXIT IS WEST.", "shot": "thumbs/turn096_full.png", "exits": "W", "items": ["BLACK CAT", "BOTTLE OF WEAK ACID", "BROOM"], "enemies": [], "visits": 3, "turns": [96, 97, 98], "actions": [{"turn": 96, "cmd": "DROP MICE", "result": "OK. THE MICE RUN AWAY AND THE CAT CHASES AFTER THEM."}, {"turn": 97, "cmd": "TAKE ACID", "result": "OK. THERE IS A BROOM."}], "links": [["W", "hut_out"]]}, "cave_book": {"ja": "暗い小洞窟（魔法の本）", "en": "Small Dark Cave", "desc": "YOU ARE IN A SMALL DARK CAVE. THERE IS A DOOR MOUNTED ON THE NORTHERN WALL.", "shot": "thumbs/turn116_full.png", "exits": "", "items": ["LOCK PICK", "MAGIC BOOK", "PIECE OF FLYPAPER", "SWARM OF BUZZING FLIES"], "enemies": [], "visits": 16, "turns": [116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 137, 138], "actions": [{"turn": 116, "cmd": "READ BOOK", "result": "ALL THE PAGES HAVE BEEN RIPPED OUT BUT ONE. IT READS 'MAGIC ELIXIRS-MOST TYPES DEAL WITH THE REMOVAL OF SPELLS CAST ON"}, {"turn": 119, "cmd": "CATCH FLIES", "result": "MANY FLIES ESCAPED, BUT YOU DID MANAGE TO CATCH SEVERAL OF THEM WITH THE PAPER."}, {"turn": 121, "cmd": "SEARCH CLOAK", "result": "YOU FOUND A LOCK PICK IN THE FOLDS OF THE CLOAK'S FABRIC. THERE IS A LOCK PICK."}, {"turn": 122, "cmd": "PICK LOCK", "result": "SORRY - YOU CAN'T."}, {"turn": 123, "cmd": "PICK LOCK DOOR", "result": "I DON'T KNOW THAT WORD."}, {"turn": 124, "cmd": "UNLOCK DOOR", "result": "SORRY - YOU CAN'T."}, {"turn": 125, "cmd": "USE PICK", "result": "I'M SORRY - I DON'T UNDERSTAND."}, {"turn": 126, "cmd": "OPEN DOOR", "result": "SORRY - YOU CAN'T."}, {"turn": 127, "cmd": "TAKE PICK", "result": "OK. THERE IS A PIECE OF FLYPAPER. THERE IS A MAGIC BOOK."}, {"turn": 128, "cmd": "PICK LOCK", "result": "OK."}], "links": [["ENTER DOOR", "cave_ball"]]}, "cave_ball": {"ja": "水晶玉の洞窟", "en": "Crystal Ball Cave", "desc": "YOU ARE IN A CAVE. ON A STALAGMITE RESTS A CRYSTAL BALL.", "shot": "thumbs/turn130_full.png", "exits": "", "items": [], "enemies": [], "visits": 7, "turns": [130, 131, 132, 133, 134, 135, 136], "actions": [{"turn": 130, "cmd": "EXAMINE CRYSTAL BALL", "result": "AS YOU GAZE INTO THE CRYSTAL BALL YOU SEE A SMALL ORANGE FLAME BURNING WITH AN UNNATURAL BRILLIANCE. AS YOU PEER"}], "links": [["ENTER DOOR", "cave_book"]]}, "sandy": {"ja": "砂地（ゴブリン）", "en": "Sandy Field", "desc": "YOU ARE IN A SANDY FIELD. PATHS LEAD N/W.", "shot": "thumbs/turn190_full.png", "exits": "NW", "items": ["DUSTY WIZARD'S CLOAK", "FAT LITTLE GOBLIN TWIRLING A", "LOCK PICK", "TINY GLEAMING KEY"], "enemies": [], "visits": 6, "turns": [190, 191, 192, 193, 194, 195], "actions": [{"turn": 190, "cmd": "SAY IJNID", "result": "OKAY. THE GOBLIN DROPS THE KEY AND FLEES SCREAMING INTO THE DARKNESS..."}, {"turn": 191, "cmd": "TAKE KEY", "result": "YOU ARE CARRYING TOO MUCH. BETTER DROP SOMETHING FIRST."}, {"turn": 192, "cmd": "DROP CLOAK", "result": "OK. THERE IS A DUSTY WIZARD'S CLOAK."}, {"turn": 193, "cmd": "TAKE KEY", "result": "YOU ARE CARRYING TOO MUCH. BETTER DROP SOMETHING FIRST. YOU HEAR A WOLF HOWL IN THE DISTANCE."}, {"turn": 194, "cmd": "DROP PICK", "result": "OK. THERE IS A LOCK PICK. A WITCH'S CACKLE CUTS THROUGH THE STILL"}], "links": [["N", "foreboding"]]}, "secret": {"ja": "墓地の地下室", "en": "Secret Chamber", "desc": "YOU ARE IN A SECRET CHAMBER UNDER THE CEMETERY.", "shot": "thumbs/turn205_full.png", "exits": "U", "items": ["MAGIC ELIXIR"], "enemies": [], "visits": 2, "turns": [205, 206], "actions": [{"turn": 205, "cmd": "TAKE ELIXIR", "result": "OK."}], "links": [["U", "cemetery"]]}, "high": {"ja": "高い部屋（はしご）", "en": "High Chamber", "desc": "YOU ARE IN A HIGH CHAMBER. STAIRS GO D.", "shot": "thumbs/turn213_full.png", "exits": "D", "items": [], "enemies": [], "visits": 4, "turns": [213, 214, 215, 224], "actions": [], "links": [["CLIMB LADDER", "tower"], ["D", "vast"]]}, "tower": {"ja": "塔の部屋（石棺）", "en": "Tower Chamber", "desc": "YOU ARE IN A TOWER CHAMBER BATHED IN MOONLIGHT.", "shot": "thumbs/turn216_full.png", "exits": "D", "items": ["BEAUTIFUL SLEEPING DAMSEL", "LARGE MESS OF TANGLED VINES", "LARGE STONE SARCOPHAGUS", "WIDE AWAKE PRINCESS"], "enemies": [], "visits": 8, "turns": [216, 217, 218, 219, 220, 221, 222, 223], "actions": [{"turn": 216, "cmd": "MOVE VINES", "result": "YOU FOUND SOMETHING! THERE IS A LARGE STONE SARCOPHAGUS."}, {"turn": 217, "cmd": "PUSH BUTTON", "result": "DAZZLING LIGHT SHOOTS FROM THE BOX AND ENVELOPS THE SARCOPHAGUS. IN A VIOLENT BLAST THE LID FLIES OFF AND EXPLODES IN"}, {"turn": 219, "cmd": "WAVE ELIXIR", "result": "OK."}, {"turn": 220, "cmd": "POUR ELIXIR", "result": "OK. YOU SEE LIGHTNING OFF IN THE DISTANCE."}, {"turn": 221, "cmd": "CLAP HANDS", "result": "THE DAMSEL STIRS A LITTLE AND FINALLY AWAKENS. THERE IS A LARGE MESS OF TANGLED VINES."}, {"turn": 222, "cmd": "GET PRINCESS", "result": "OK. YOU ARE IN A TOWER CHAMBER BATHED IN MOONLIGHT."}], "links": [["D", "high"]]}};
+const panel = document.getElementById('panel');
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function show(id){
+  const r = D[id]; if(!r) return;
+  document.querySelectorAll('.room').forEach(g => g.classList.toggle('active', g.dataset.id === id));
+  const tags = (a, c) => a.length ? a.map(x => '<span class="tag ' + (c || '') + '">' + esc(x) + '</span>').join('') : '<span class="tag">なし</span>';
+  const acts = r.actions.length
+    ? r.actions.map(a => '<div class="act">T' + a.turn + ' <code>' + esc(a.cmd) + '</code><div class="r">' + esc(a.result || '—') + '</div></div>').join('')
+    : '<div class="act">（移動のみ）</div>';
+  const links = r.links.length
+    ? r.links.map(([d, t]) => '<span class="tag link" data-to="' + t + '"><b>' + esc(d) + '</b> → ' + esc(D[t] ? D[t].ja : t) + '</span>').join('')
+    : '—';
+  panel.innerHTML = '<button class="close">×</button>'
+    + '<h3>' + esc(r.ja) + '</h3><div class="desc">' + esc(r.en) + '<br>' + esc(r.desc) + '</div>'
+    + '<img src="' + r.shot + '" alt="' + esc(r.en) + '">'
+    + '<dl>'
+    + '<dt>出口</dt><dd>' + (r.exits ? r.exits.split('').join(' ') : '—') + '</dd>'
+    + '<dt>確認した移動</dt><dd>' + links + '</dd>'
+    + '<dt>見つけた物</dt><dd>' + tags(r.items) + '</dd>'
+    + '<dt>出現した敵</dt><dd>' + tags(r.enemies, 'enemy') + '</dd>'
+    + '<dt>この部屋での行動</dt><dd>' + acts + '</dd>'
+    + '<dt>訪問</dt><dd>' + r.visits + ' 回（ターン ' + r.turns.join(', ') + '）</dd>'
+    + '</dl>';
+  panel.classList.add('open');
+  panel.querySelector('.close').onclick = () => panel.classList.remove('open');
+  panel.querySelectorAll('.tag.link').forEach(t => t.onclick = () => show(t.dataset.to));
+}
+document.querySelectorAll('.room, .roomlist li').forEach(g => g.addEventListener('click', () => show(g.dataset.id)));
+document.addEventListener('keydown', e => { if (e.key === 'Escape') panel.classList.remove('open'); });
+</script>
+<a class="pub-back" href="./">&larr; Transylvania</a>
+</body></html>

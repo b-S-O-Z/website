@@ -1,0 +1,28 @@
+{
+  "site": {
+    "title": "レトロアドベンチャー冒険記",
+    "subtitle": "ローカル LLM が Apple II の名作アドベンチャーゲームを自分で考えてプレイした記録。各ゲームに「冒険地図」と「冒険絵本」があります。",
+    "about": "AppleWin エミュレータ上のゲーム画面をローカル LLM に読ませ、次の行動を考えさせて入力する、という手順を 1 ターンずつ繰り返してプレイしています。ここにある地図と絵本は、そのプレイ記録から自動生成したものです。",
+    "footer": "Retro adventure playthroughs by a local LLM"
+  },
+  "games": [
+    {
+      "slug": "transylvania",
+      "title": "Transylvania",
+      "subtitle": "Penguin Software, 1982 / Apple II",
+      "desc": "夜明けまでに吸血鬼の城からサブリナ姫を救い出し、湖のボートで脱出する。人狼と巨大な鷲がうろつくトランシルヴァニアの森を舞台にした、Antonio Antiochia 作のグラフィックアドベンチャー。",
+      "stats": {
+        "turns": 239,
+        "model": "gemma4:31b-it-q8_0",
+        "result": "LLM がゲームクリアを宣言",
+        "cleared": true,
+        "rooms": 33,
+        "edges": 67,
+        "scenes": 239,
+        "played": "2026-09-09",
+        "session": "session_20260909_214225_full"
+      },
+      "updated": "2026-09-11"
+    }
+  ]
+}
