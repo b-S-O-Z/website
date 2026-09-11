@@ -1,76 +1,47 @@
 <!DOCTYPE html>
-<html lang="ja"><head><meta charset="utf-8">
+<html lang="ja">
+<head>
+<meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>レトロアドベンチャー冒険記</title>
-<meta name="description" content="ローカル LLM が Apple II の名作アドベンチャーゲームを自分で考えてプレイした記録。各ゲームに「冒険地図」と「冒険絵本」があります。">
+<!-- ▼ サイト名・説明はここを編集 -->
+<title>サイト名</title>
+<meta name="description" content="サイトの説明">
 <style>
-:root{--paper:#f6efe0;--card:#fffdf6;--ink:#3a2f25;--mute:#8a7a63;--line:#e3d8c2;--accent:#7a4b2a;--red:#b5442a}
+:root{--paper:#f6efe0;--card:#fffdf6;--ink:#3a2f25;--mute:#8a7a63;--line:#e3d8c2;--accent:#7a4b2a}
 *{box-sizing:border-box}
 body{margin:0;background:var(--paper);color:var(--ink);line-height:1.8;
   font-family:"Yu Mincho","Hiragino Mincho ProN","BIZ UDMincho",serif}
 a{color:var(--accent)}
-header{text-align:center;padding:44px 16px 10px}
-h1{font-size:1.9rem;letter-spacing:.16em;margin:0 0 6px}
-.lead{color:var(--mute);font-size:.95rem;max-width:640px;margin:0 auto;font-family:system-ui,sans-serif}
-main{max-width:1080px;margin:0 auto;padding:10px 16px 70px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:16px;
-  box-shadow:0 3px 14px rgba(90,70,40,.12);overflow:hidden}
-.hero{display:block;width:100%;aspect-ratio:560/320;object-fit:cover;background:#000}
-.btns{display:flex;gap:12px;flex-wrap:wrap;font-family:system-ui,sans-serif}
-.btn{flex:1 1 180px;text-align:center;text-decoration:none;color:#fff;background:var(--accent);
-  padding:13px 18px;border-radius:12px;font-weight:700;letter-spacing:.08em;font-size:1rem}
-.btn.alt{background:#3a2f25}
-.btn:hover{filter:brightness(1.12)}
-.btn small{display:block;font-weight:400;font-size:.78rem;opacity:.85;letter-spacing:0}
-.stats{display:flex;gap:22px;flex-wrap:wrap;font-family:system-ui,sans-serif;margin:14px 0 4px}
-.stat b{display:block;font-size:1.35rem;color:var(--accent);line-height:1.1}
-.stat span{font-size:.75rem;color:var(--mute)}
-.meta{color:var(--mute);font-size:.8rem;font-family:system-ui,sans-serif}
-.tag{display:inline-block;background:#efe6d2;border-radius:6px;padding:0 8px;font-size:.78rem;
-  font-family:system-ui,sans-serif;color:#5a4a38;margin-right:6px}
-.tag.ok{background:#dcebd2;color:#2f5a2a}
+header{text-align:center;padding:56px 16px 18px}
+h1{font-size:2rem;letter-spacing:.16em;margin:0 0 8px}
+.lead{color:var(--mute);font-family:system-ui,sans-serif;max-width:600px;margin:0 auto}
+main{max-width:860px;margin:0 auto;padding:10px 16px 70px}
+.card{display:block;background:var(--card);border:1px solid var(--line);border-radius:16px;
+  box-shadow:0 3px 14px rgba(90,70,40,.12);padding:22px 26px;margin:22px 0;
+  text-decoration:none;color:var(--ink)}
+.card:hover{border-color:var(--accent)}
+.card h2{margin:0 0 6px;font-size:1.3rem;letter-spacing:.08em}
+.card p{margin:0;color:var(--mute);font-family:system-ui,sans-serif;font-size:.9rem}
 footer{text-align:center;color:var(--mute);font-size:.78rem;font-family:system-ui,sans-serif;padding:20px}
-
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:22px;margin-top:18px}
-.game .body{padding:16px 20px 20px}
-.game h2{margin:0;font-size:1.35rem;letter-spacing:.06em}
-.game h2 a{text-decoration:none;color:var(--ink)}
-.game h2 a:hover{color:var(--accent)}
-.game .sub{color:var(--mute);font-family:system-ui,sans-serif;font-size:.85rem;margin:2px 0 0}
-.game .btns{margin:12px 0 8px}
-.game .btn{padding:10px 14px;font-size:.92rem}
-.how{margin:40px auto 0;max-width:760px;color:var(--mute);font-size:.88rem;font-family:system-ui,sans-serif}
-.how h3{color:var(--ink);font-family:"Yu Mincho","Hiragino Mincho ProN",serif;letter-spacing:.1em;font-size:1rem;border-bottom:1px solid var(--line);padding-bottom:4px}
-</style></head>
+</style>
+</head>
 <body>
 <header>
-<h1>レトロアドベンチャー冒険記</h1>
-<p class="lead">ローカル LLM が Apple II の名作アドベンチャーゲームを自分で考えてプレイした記録。各ゲームに「冒険地図」と「冒険絵本」があります。</p>
+  <!-- ▼ 見出しと紹介文 -->
+  <h1>サイト名</h1>
+  <p class="lead">ここにサイトの紹介文を書きます。</p>
 </header>
 <main>
-<div class="grid">
-<article class="card game">
-<a href="games/transylvania/"><img class="hero" src="games/transylvania/hero.png" alt="Transylvania"></a>
-<div class="body">
-<h2><a href="games/transylvania/">Transylvania</a></h2>
-<p class="sub">Penguin Software, 1982 / Apple II <span class="tag ok">クリア達成</span></p>
-<div class="stats">
-<div class="stat"><b>239</b><span>場面</span></div>
-<div class="stat"><b>33</b><span>場所</span></div>
-<div class="stat"><b>239</b><span>ターン</span></div>
-</div>
-<div class="btns">
-<a class="btn" href="games/transylvania/map.html">&#128506; 冒険地図</a>
-<a class="btn alt" href="games/transylvania/storybook.html">&#128214; 冒険絵本</a>
-</div>
-<p class="meta">プレイ日 2026-09-09</p>
-</div>
-</article></div>
-<section class="how">
-<h3>このサイトについて</h3>
-<p>AppleWin エミュレータ上のゲーム画面をローカル LLM に読ませ、次の行動を考えさせて入力する、という手順を 1 ターンずつ繰り返してプレイしています。ここにある地図と絵本は、そのプレイ記録から自動生成したものです。</p>
-<p>各ゲームには 2 つの記録があります。<b>冒険地図</b>は、訪れた場所を実際の画面とともに方角どおりに並べたもので、カードをクリックするとその場所で見つけた物や実行した行動が見られます。<b>冒険絵本</b>は、旅路を場面ごとに絵と日本語の物語で読めるようにしたものです。</p>
-</section>
+  <!-- ▼ コンテンツへのリンク。games/ 以下は publish.py が自動生成します -->
+  <a class="card" href="games/">
+    <h2>&#128214; レトロアドベンチャー冒険記</h2>
+    <p>ローカル LLM がプレイした Apple II アドベンチャーの冒険地図と冒険絵本</p>
+  </a>
+  <!-- 他のセクションを追加する場合はこのカードをコピー -->
 </main>
-<footer>Retro adventure playthroughs by a local LLM</footer>
-</body></html>
+<footer>
+  <!-- ▼ フッター -->
+  &copy; サイト名
+</footer>
+</body>
+</html>
